@@ -1,0 +1,10 @@
+    |-- minimal_chatbot.py - Contains the core logic for a simplified conversational AI.
+    |-- README.md - Provides an introductory overview of the project.
+    |-- requirements.txt - Lists the project's necessary third-party libraries and their versions.
++-- convos/ - Stores example conversation logs.
+    |-- convo1.txt - Contains the text of the first conversation.
++-- prompts/ - Contains predefined inputs for AI models.
+    |-- system_prompt.txt - Contains the initial instructions and context given to the AI model.
++-- scripts/ - Contains automated tasks and utility programs.
+    |-- generate_docs.py - Automates the creation of project documentation.
+    |-- update_docs.py - Manages the documentation generation process.

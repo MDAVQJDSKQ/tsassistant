@@ -22,7 +22,7 @@ EXCLUDE_FILES = {'.env', '.gitignore'}
 # --- Configuration ---
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
-MODEL_NAME = "anthropic/claude-3.5-haiku" # Model specified by the user
+MODEL_NAME = "google/gemini-2.5-flash-preview" # Model specified by the user
 API_DELAY = 0.5  # Delay between API calls in seconds
 # --- End Configuration ---
 
@@ -96,6 +96,13 @@ def generate_tree(project_root, output_file, exclude_dirs, exclude_files, model_
             desc = get_description(file_path, 'file')
             tree_lines.append(f"{file_indent}|-- {f} - {desc}")
             time.sleep(delay)
+    
+    # Add this code to write the tree data to the file
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(tree_lines))
+    except Exception as e:
+        print(f"Error writing to {output_file}: {e}")
 
 
 def generate_readme(project_root, api_key, model_name):
