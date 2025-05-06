@@ -149,7 +149,9 @@ export default function ChatPage() {
                         message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}
                     >
-                      {message.content}
+                      <div style={{ whiteSpace: 'pre-wrap' }}>
+                        {message.content}
+                      </div>
                     </div>
                   </div>
                 ))

@@ -47,13 +47,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // Important: Return the stream directly without transforming it
-    // This is critical for streaming to work - do not buffer or re-encode
-    return new Response(backendResponse.body, {
+    // Get the full response as JSON
+    const responseJson = await backendResponse.json();
+    
+    // Extract the content field with line breaks preserved
+    const content = responseJson.content || "";
+    
+    // Return the content directly as a text/plain response
+    return new Response(content, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        'X-Content-Type-Options': 'nosniff',
       },
     });
 
