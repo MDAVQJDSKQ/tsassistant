@@ -358,10 +358,10 @@ export default function ChatPage() {
                  id="resize-handle"></div>
           </div>
 
-          {/* Config panel */}
+          {/* Configuration panel */}
           <div className="flex flex-col h-full border-l w-1/2">
             <header className="border-b p-4">
-              <h2 className="text-lg font-semibold">Config</h2>
+              <h2 className="text-lg font-semibold">Configuration</h2>
             </header>
             <div className="flex-1 p-4 overflow-auto">
               <div className="space-y-6">
