@@ -1,7 +1,8 @@
 # backend_server.py
-from fastapi import FastAPI, HTTPException # Added HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+from typing import List, Dict # Added for response models
 
 # --- Add CORS Middleware ---
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,11 +15,24 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from langchain.schema import HumanMessage, AIMessage # Needed for memory
 
-# Our config - fixed import to work when run directly
+# Our config and utils
 try:
     from backend.config import config  # This path works when imported as a module
+    from backend.utils import (
+        save_conversation_history,
+        load_conversation_history,
+        generate_new_conversation_id,
+        list_conversations
+    )
 except ImportError:
     from config import config  # This fallback works when run directly within the backend folder
+    from utils import (
+        save_conversation_history,
+        load_conversation_history,
+        generate_new_conversation_id,
+        list_conversations
+    )
+
 
 # --- Memory Cache ---
 # Simple in-memory dictionary to store memory objects per conversation
@@ -30,6 +44,9 @@ memory_cache: dict[str, ConversationBufferWindowMemory] = {}
 class ChatRequest(BaseModel):
     messages: list[dict] # Expect list of {"role": "user"|"assistant", "content": "..."}
     conversation_id: str # ID for the specific chat session
+
+class NewConversationResponse(BaseModel):
+    conversation_id: str
 
 # Instantiate the FastAPI app
 app = FastAPI()
@@ -62,15 +79,21 @@ async def handle_chat(request: ChatRequest):
     # --- 1. Get/Create Conversation Memory ---
     if conversation_id not in memory_cache:
         print(f"Creating new memory for conversation_id: {conversation_id}")
-        memory_cache[conversation_id] = ConversationBufferWindowMemory(
+        current_memory = ConversationBufferWindowMemory(
             memory_key="chat_history",
             return_messages=True,
             input_key="human_input",
             k=config.memory_window_size
         )
-        # Potential Enhancement: Try loading from file here if cache is empty?
-        # For now, we rely solely on the in-memory cache per session.
-        # The load/save functions in utils.py are NOT directly used here yet.
+        memory_cache[conversation_id] = current_memory
+        # --- Load from file if exists ---
+        print(f"Attempting to load history for new/cached conversation_id: {conversation_id}")
+        loaded = load_conversation_history(current_memory, conversation_id)
+        if loaded:
+            print(f"Successfully loaded history for {conversation_id} into memory cache.")
+        else:
+            print(f"No existing history found for {conversation_id}, or error during load. Starting fresh.")
+        # --- End Load ---
 
     memory = memory_cache[conversation_id]
     # --- End Memory Management ---
@@ -80,17 +103,12 @@ async def handle_chat(request: ChatRequest):
     if incoming_messages and incoming_messages[-1].get("role") == "user":
         last_user_message_content = incoming_messages[-1].get("content", "")
     else:
-        # Handle cases where history is sent without a new user message,
-        # or the format is unexpected.
         print("Warning: No user message found at the end of the request payload.")
-        # Decide how to handle this - error or ignore? For now, return error.
         raise HTTPException(status_code=400, detail="No user message provided")
     # --- End Extract Message ---
 
 
     # --- 3. Instantiate LangChain components (can be reused) ---
-    # These could potentially be initialized once outside the function
-    # if they don't change per request, but fine here for now.
     llm = ChatOpenAI(
         model_name=config.model_name,
         openai_api_key=config.openrouter_api_key,
@@ -98,14 +116,12 @@ async def handle_chat(request: ChatRequest):
         temperature=config.temperature,
     )
 
-    # Load the system prompt (consider caching this read operation)
     try:
-        # Try multiple paths to find the system prompt
         possible_paths = [
-            "backend/prompts/system_prompt.txt",  # When run from project root
-            "prompts/system_prompt.txt",          # When run from backend directory
+            "backend/prompts/system_prompt.txt",
+            "prompts/system_prompt.txt",
         ]
-        
+        system_message = None
         for path in possible_paths:
             try:
                 with open(path, "r", encoding="utf-8") as file:
@@ -114,7 +130,7 @@ async def handle_chat(request: ChatRequest):
                     break
             except FileNotFoundError:
                 continue
-        else:  # This runs if no break occurred in the for loop
+        if system_message is None:
             raise FileNotFoundError("Could not find system prompt file in any expected location")
     except FileNotFoundError as e:
          raise HTTPException(status_code=500, detail=f"System prompt file not found: {e}")
@@ -134,17 +150,16 @@ async def handle_chat(request: ChatRequest):
     )
 
     # --- 4. Define and Run Chain ---
-    # This part is similar to your script, but uses the retrieved 'memory'
-    load_memory = RunnableLambda(lambda _: memory.load_memory_variables({}))
+    load_memory_runnable = RunnableLambda(lambda _: memory.load_memory_variables({}))
 
-    chain_input = RunnablePassthrough.assign(
-        chat_history=load_memory | RunnableLambda(lambda mem: mem.get('chat_history', [])),
+    chain_input_passthrough = RunnablePassthrough.assign(
+        chat_history=load_memory_runnable | RunnableLambda(lambda mem: mem.get('chat_history', [])),
         system_message=lambda x: x['system_message'],
         human_input=lambda x: x['human_input']
     )
 
     chain = (
-        chain_input
+        chain_input_passthrough
         | prompt
         | llm
         | StrOutputParser()
@@ -161,16 +176,21 @@ async def handle_chat(request: ChatRequest):
         print(f"Chain response: {ai_response_content}")
 
         # --- 5. Update Memory (In-Memory Cache) ---
-        # Use the specific 'memory' instance for this conversation_id
         memory.save_context(
             {"human_input": last_user_message_content},
             {"output": ai_response_content}
         )
+        # --- Save to file ---
+        print(f"Attempting to save conversation {conversation_id} to disk.")
+        save_path = save_conversation_history(memory, conversation_id)
+        if save_path:
+            print(f"Conversation {conversation_id} successfully saved to {save_path}")
+        else:
+            print(f"Failed to save conversation {conversation_id} to disk.")
+        # --- End Save ---
         # -----------------------------------------
 
         # --- 6. Return Response ---
-        # Check AI SDK docs for the exact structure it needs.
-        # Simple JSON object for now.
         return {"role": "assistant", "content": ai_response_content}
         # --- End Return ---
 
@@ -178,11 +198,65 @@ async def handle_chat(request: ChatRequest):
         print(f"Error invoking LangChain chain: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing chat: {e}")
 
+@app.get("/api/conversations", response_model=List[Dict[str, str]])
+async def get_conversations_list_endpoint():
+    try:
+        print("API: Request to list conversations received.")
+        conversations_data = list_conversations()
+        print(f"API: Found conversations: {conversations_data}")
+        return conversations_data
+    except Exception as e:
+        print(f"API Error: Error listing conversations: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list conversations")
+
+@app.post("/api/conversations/new", response_model=NewConversationResponse)
+async def create_new_conversation_endpoint():
+    try:
+        new_id = generate_new_conversation_id()
+        print(f"API: Generated new conversation ID: {new_id}")
+        # No need to create memory or file here; /api/chat will handle it on first message.
+        return {"conversation_id": new_id}
+    except Exception as e:
+        print(f"API Error: Error generating new conversation ID: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create new conversation")
+
+@app.get("/api/conversations/{conversation_id}/messages")
+async def get_conversation_messages_endpoint(conversation_id: str):
+    """
+    Retrieves the messages for a specific conversation ID.
+    """
+    try:
+        print(f"API: Request to get messages for conversation_id: {conversation_id}")
+        # Create a temporary memory to load the conversation
+        temp_memory = ConversationBufferWindowMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            input_key="human_input",
+            k=config.memory_window_size
+        )
+        
+        loaded = load_conversation_history(temp_memory, conversation_id)
+        if not loaded:
+            raise HTTPException(status_code=404, detail=f"Conversation {conversation_id} not found")
+            
+        # Extract messages from memory
+        messages = []
+        if hasattr(temp_memory, 'chat_memory') and hasattr(temp_memory.chat_memory, 'messages'):
+            for msg in temp_memory.chat_memory.messages:
+                if isinstance(msg, HumanMessage):
+                    messages.append({"role": "user", "content": msg.content})
+                elif isinstance(msg, AIMessage):
+                    messages.append({"role": "assistant", "content": msg.content})
+        
+        return {"conversation_id": conversation_id, "messages": messages}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"API Error: Error getting conversation messages: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get conversation messages: {e}")
 
 # --- Add logic to run the server if this script is executed directly ---
-# This is useful for development
 if __name__ == "__main__":
-    # When run directly, use the app directly
     uvicorn.run(
         "backend.backend_server:app" if __package__ == "backend" else "backend_server:app",
         host="0.0.0.0",

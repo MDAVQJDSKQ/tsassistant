@@ -20,6 +20,18 @@ export async function POST(req: Request) {
       });
     }
 
+    // --- Validate conversation_id ---
+    if (!conversation_id || typeof conversation_id !== 'string' || conversation_id.trim() === "") {
+      console.error("Frontend API Route: 'conversation_id' is missing or invalid in request body.");
+      return new Response(JSON.stringify({
+        error: "Conversation ID is missing or invalid."
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    // --- End validation ---
+
     console.log("Frontend API Route: Processing request. Conversation ID:", conversation_id);
     console.log("Frontend API Route: Messages:", JSON.stringify(messages, null, 2));
 
@@ -30,7 +42,7 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: messages,
-        conversation_id: conversation_id || "default"
+        conversation_id: conversation_id // Removed "|| default"
       })
     });
 
@@ -47,14 +59,33 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get the full response as JSON
-    const responseJson = await backendResponse.json();
+    // Create a TransformStream that properly preserves line breaks when extracting content
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
     
-    // Extract the content field with line breaks preserved
-    const content = responseJson.content || "";
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        const text = decoder.decode(chunk);
+        
+        try {
+          // Parse the JSON and extract just the content field
+          const json = JSON.parse(text);
+          if (json && json.content !== undefined) {
+            // Send the raw content exactly as provided by the backend
+            // This preserves all formatting including line breaks
+            controller.enqueue(encoder.encode(json.content));
+          } else {
+            // Fallback if content field is missing
+            controller.enqueue(encoder.encode(text));
+          }
+        } catch (e) {
+          // If JSON parsing fails, send the raw text
+          controller.enqueue(encoder.encode(text));
+        }
+      }
+    });
     
-    // Return the content directly as a text/plain response
-    return new Response(content, {
+    return new Response(backendResponse.body?.pipeThrough(transformStream), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
       },

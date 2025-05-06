@@ -9,14 +9,18 @@ from langchain_core.output_parsers import StrOutputParser
 
 # Import config and utils
 from backend.config import config
-from backend.utils import save_conversation_history, load_latest_conversation_history
+from backend.utils import save_conversation_history, load_conversation_history, load_latest_conversation_history, generate_new_conversation_id, list_conversations
 
 # --- Pydantic Models for Request/Response ---
 class ChatInput(BaseModel):
     user_input: str
+    conversation_id: str = None  # Added conversation_id field with default None
 
 class ChatOutput(BaseModel):
     bot_response: str
+
+class ConversationCreateResponse(BaseModel):
+    conversation_id: str
 
 # --- FastAPI App Initialization ---
 app = FastAPI(title="TSAssistant Chatbot API")
@@ -114,25 +118,10 @@ async def chat_endpoint(chat_input: ChatInput):
          raise HTTPException(status_code=503, detail="Chatbot service not ready.")
 
     try:
-        # Prepare input dictionary for the LCEL chain's invoke method
-        chain_input_dict = {
-            "human_input": chat_input.user_input,
-            "system_message": system_message
-            # chat_history is loaded dynamically within the chain
-        }
-
-        # Invoke the LCEL chain asynchronously
-        response = await chain.ainvoke(chain_input_dict) # Use ainvoke for async
-
-        # Manually save the context to memory for the next turn
-        await memory.asave_context({"human_input": chat_input.user_input}, {"output": response})
-
-        # --- Save Conversation After Interaction ---
-        # Consider moving this to a background task or shutdown event for performance
-        save_conversation_history(memory)
-        # --- End Save ---
-
-        return ChatOutput(bot_response=response)
+        # Forward to backend_server.py which handles conversation persistence
+        # This file should not be used directly for API calls
+        raise HTTPException(status_code=501, 
+                           detail="This endpoint is not implemented in main.py. Please use backend_server.py instead.")
 
     except Exception as e:
         print(f"An error occurred during chat processing: {e}")
