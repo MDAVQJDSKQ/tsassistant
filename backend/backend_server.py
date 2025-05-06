@@ -1,3 +1,5 @@
+# Run the backend server using: python -m backend.backend_server
+
 # backend_server.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
