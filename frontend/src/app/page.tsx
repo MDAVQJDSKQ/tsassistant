@@ -207,12 +207,70 @@ export default function ChatPage() {
     updateConversationMessages(messages)
   }, [messages, updateConversationMessages])
 
+  // Add resize functionality between chat and config panels
+  useEffect(() => {
+    const chatPanel = document.querySelector('div.flex.flex-col.flex-grow.h-full.w-1\\/2.relative');
+    const configPanel = document.querySelector('div.flex.flex-col.h-full.border-l.w-1\\/2');
+    const resizeHandle = document.getElementById('resize-handle');
+    
+    if (!chatPanel || !configPanel || !resizeHandle) return;
+    
+    let isResizing = false;
+    let startX = 0;
+    let startChatWidth = 0;
+    let startConfigWidth = 0;
+    
+    const handleMouseDown = (e: MouseEvent) => {
+      isResizing = true;
+      startX = e.clientX;
+      startChatWidth = chatPanel.getBoundingClientRect().width;
+      startConfigWidth = configPanel.getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    };
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const containerWidth = chatPanel.parentElement!.getBoundingClientRect().width;
+      const deltaX = e.clientX - startX;
+      
+      // Calculate new widths as percentages
+      const newChatWidthPercent = ((startChatWidth + deltaX) / containerWidth) * 100;
+      const newConfigWidthPercent = 100 - newChatWidthPercent;
+      
+      // Apply constraints (30% - 70%)
+      if (newChatWidthPercent >= 30 && newChatWidthPercent <= 70) {
+        (chatPanel as HTMLElement).style.width = `${newChatWidthPercent}%`;
+        (configPanel as HTMLElement).style.width = `${newConfigWidthPercent}%`;
+      }
+    };
+    
+    const handleMouseUp = () => {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      }
+    };
+    
+    resizeHandle.addEventListener('mousedown', handleMouseDown);
+    
+    return () => {
+      resizeHandle.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   console.log("Render - messages:", messages)
   if (error) console.error("Render - error:", error)
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen w-screen bg-background overflow-hidden">
         <Sidebar>
           <SidebarHeader className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Conversations</h2>
@@ -247,66 +305,97 @@ export default function ChatPage() {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 h-full">
-          <header className="border-b p-4 flex items-center">
-            <SidebarTrigger className="mr-2" />
-            <h1 className="text-xl font-bold">{conversations.find((c) => c.id === activeConversation)?.title}</h1>
-          </header>
+        {/* Main container - modified to fill all available space */}
+        <div className="flex flex-1 h-full w-full">
+          {/* Chat area wrapper */}
+          <div className="flex flex-col h-full w-1/2 relative">
+            <header className="border-b p-4 flex items-center">
+              <SidebarTrigger className="mr-2" />
+              <h1 className="text-xl font-bold">{conversations.find((c) => c.id === activeConversation)?.title}</h1>
+            </header>
 
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-3xl mx-auto space-y-4">
-              {messages.length === 0 && !isLoading ? (
-                <div className="text-center py-20 text-muted-foreground">
-                  <h3 className="text-lg font-medium">Start a new conversation</h3>
-                  <p className="text-sm mt-1">Ask me anything!</p>
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                      }`}
-                    >
-                      {/* Added className for styling newlines */}
-                      <div className="message-content-display">{message.content}</div>
+            <main className="flex-1 overflow-auto p-6">
+              <div className="max-w-3xl mx-auto space-y-4">
+                {messages.length === 0 && !isLoading ? (
+                  <div className="text-center py-20 text-muted-foreground">
+                    <h3 className="text-lg font-medium">Start a new conversation</h3>
+                    <p className="text-sm mt-1">Ask me anything!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                          message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                        }`}
+                      >
+                        {/* Added className for styling newlines */}
+                        <div className="message-content-display">{message.content}</div>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-              
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="rounded-lg px-4 py-2 max-w-[80%] bg-muted">
-                    <div className="animate-pulse">AI is thinking...</div>
-                  </div>
-                </div>
-              )}
-              
-              {error && (
-                <div className="flex justify-start">
-                  <div className="rounded-lg px-4 py-2 max-w-[80%] bg-red-100 text-red-800">
-                    <strong>Error:</strong> {error.message || "Something went wrong"}
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
+                  ))
+                )}
+              </div>
+            </main>
 
-          <footer className="border-t p-4">
-            <form onSubmit={onSubmit} className="max-w-3xl mx-auto flex gap-2">
-              <Input 
-                value={input} 
-                onChange={handleInputChange} 
-                placeholder="Type your message..." 
-                className="flex-1" 
-                disabled={isLoading}
-              />
-              <Button type="submit" size="icon" disabled={isLoading}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </footer>
+            <footer className="border-t p-4">
+              <form onSubmit={onSubmit} className="max-w-3xl mx-auto flex gap-2">
+                <Input 
+                  value={input} 
+                  onChange={handleInputChange} 
+                  placeholder="Type your message..." 
+                  className="flex-1" 
+                  disabled={isLoading}
+                />
+                <Button type="submit" size="icon" disabled={isLoading}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            </footer>
+            
+            {/* Resize handle */}
+            <div className="absolute right-0 top-0 bottom-0 w-1 bg-border cursor-col-resize hover:bg-primary/50 transition-colors duration-200" 
+                 id="resize-handle"></div>
+          </div>
+
+          {/* Config panel */}
+          <div className="flex flex-col h-full border-l w-1/2">
+            <header className="border-b p-4">
+              <h2 className="text-lg font-semibold">Config</h2>
+            </header>
+            <div className="flex-1 p-4 overflow-auto">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Model Selection</h3>
+                  <select className="w-full p-2 border rounded bg-background">
+                    <option>GPT-4</option>
+                    <option>GPT-3.5 Turbo</option>
+                    <option>Claude 3</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">System Directive</h3>
+                  <textarea 
+                    className="w-full h-40 p-2 border rounded bg-background resize-none" 
+                    placeholder="Enter system instructions for the AI..."
+                  ></textarea>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Temperature</h3>
+                  <input type="range" min="0" max="1" step="0.1" defaultValue="0.7" className="w-full" />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Precise</span>
+                    <span>Balanced</span>
+                    <span>Creative</span>
+                  </div>
+                </div>
+                
+                <Button className="w-full">Apply Configuration</Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </SidebarProvider>
