@@ -13,14 +13,12 @@ A real-time chatbot application built with LangChain and Next.js. This project p
 ### Backend Setup
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd <repository-name>
+   git clone https://github.com/MDAVQJDSKQ/tsassistant.git
    ```
 
 2. Set up the Python environment:
    ```bash
-   cd backend
-   pip install -r ../requirements.txt
+   pip install -r requirements.txt
    ```
 
 3. Create a `.env` file in the backend directory with:
