@@ -1,65 +1,67 @@
-# Minimal Chatbot Documentation Generator
+# Minimal Chatbot Project
 
 ## Overview
-This project is a documentation generation and management tool for a minimal chatbot application, featuring AI-powered documentation creation and project structure analysis.
+A lightweight, flexible chatbot application built using LangChain, designed to demonstrate core conversational AI functionality with conversation history persistence and documentation generation capabilities.
 
 ## Features
-- AI-powered documentation generation
-- Project file tree structure creation
-- Cross-platform documentation update script
-- OpenRouter API integration for documentation tasks
+- Conversational AI core using LangChain
+- Conversation history saving and loading
+- JSON-based conversation persistence
+- Automated documentation generation
+- Cross-platform documentation update scripts
 
 ## Tech Stack
 - Python
 - LangChain
-- OpenRouter AI
+- OpenAI API
+- Pydantic
+- OpenRouter (for documentation generation)
+
+## Requirements
+Python 3.8+ with the following dependencies:
+- langchain
+- langchain-openai
 - python-dotenv
+- requests
+- pydantic-settings
 
 ## Installation
-
-### Prerequisites
-- Python 3.8+
-- OpenRouter API Key
-
-### Steps
 1. Clone the repository
 2. Create a virtual environment
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 ```
-
 3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Set up environment variables
-Create a `.env` file and add your OpenRouter API key:
-```
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-```
-
 ## Usage
+### Running the Chatbot
+```bash
+python minimal_chatbot.py
+```
 
-### Generate Documentation
-Run the documentation generation script:
+### Generating Documentation
 ```bash
 python scripts/generate_docs.py
-```
-
-### Update Documentation
-Run the cross-platform documentation update script:
-```bash
 python scripts/update_docs.py
 ```
 
 ## Project Structure
-- `minimal_chatbot.py`: Main chatbot application
-- `scripts/generate_docs.py`: Documentation generation script using AI
-- `scripts/update_docs.py`: Cross-platform documentation update script
-- `requirements.txt`: Project dependency list
-- `system_prompt.txt`: System prompt configuration
+- `minimal_chatbot.py`: Core chatbot application
+- `convos/`: Directory for storing conversation histories
+- `prompts/`: Contains system prompts and configuration
+- `scripts/`: Utility scripts for documentation and updates
+- `requirements.txt`: Project dependencies
+
+## Configuration
+Set up your `.env` file with necessary API keys:
+```
+OPENAI_API_KEY=your_openai_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
 
 ## Contributing
 1. Fork the repository
@@ -69,7 +71,4 @@ python scripts/update_docs.py
 5. Create a new Pull Request
 
 ## License
-[Specify your project's license]
-
-## Contact
-[Add contact information or project maintainer details]
+[Specify your license, e.g., MIT]

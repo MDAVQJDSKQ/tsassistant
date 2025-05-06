@@ -16,13 +16,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # List of directory and file names to exclude from the tree
-EXCLUDE_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'env', 'node_modules', '.vscode', '.idea', 'dist', 'build'}
+EXCLUDE_DIRS = {'.git', '__pycache__', '.venv', 'venv', 'env', 'node_modules', '.vscode', '.idea', 'dist', 'build', 'convos'}
 EXCLUDE_FILES = {'.env', '.gitignore'}
 
 # --- Configuration ---
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
-MODEL_NAME = "google/gemini-2.5-flash-preview" # Model specified by the user
+MODEL_NAME = "anthropic/claude-3.5-haiku" # Model specified by the user
 API_DELAY = 0.5  # Delay between API calls in seconds
 # --- End Configuration ---
 
@@ -168,9 +168,9 @@ def generate_readme(project_root, api_key, model_name):
             "Structure the README with standard sections like:\n"
             "- Project Title (Infer a suitable one if not obvious)\n"
             "- Overview (A brief description of what the project does)\n"
-            "- Features (Key capabilities based on the code/files)\n"
-            "- Tech Stack (Identify programming languages and frameworks based on imports and file types)\n"
             "- Installation (Provide basic steps, mention requirements.txt if applicable)\n"
+            "- Features (Key function and major implementations based on the code/files)\n"
+            "- Tech Stack (Identify programming languages and frameworks based on imports and file types)\n"
             "- Usage (Explain how to run the application based on the project structure)\n"
             "- Project Structure (Briefly explain the purpose of key files/directories like src/, scripts/)\n"
             "Focus on clarity and accuracy based *only* on the provided context. Format the output using Markdown."

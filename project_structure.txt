@@ -1,10 +1,35 @@
-    |-- minimal_chatbot.py - Contains the core logic for a simplified conversational AI.
-    |-- README.md - Provides an introductory overview of the project.
-    |-- requirements.txt - Lists the project's necessary third-party libraries and their versions.
-+-- convos/ - Stores example conversation logs.
-    |-- convo1.txt - Contains the text of the first conversation.
-+-- prompts/ - Contains predefined inputs for AI models.
-    |-- system_prompt.txt - Contains the initial instructions and context given to the AI model.
-+-- scripts/ - Contains automated tasks and utility programs.
-    |-- generate_docs.py - Automates the creation of project documentation.
-    |-- update_docs.py - Manages the documentation generation process.
+    |-- backend_server.py - Handles server-side logic and API endpoints for the application's backend functionality.
+    |-- config.py - A configuration file that stores application-wide settings, environment variables, and global parameters for easy management and customization.
+    |-- main.py - The primary entry point for executing the application's core functionality and orchestrating program flow.
+    |-- minimal_chatbot.py - A lightweight Python script implementing a basic conversational AI with simple interaction capabilities.
+    |-- project_structure.txt - A plaintext document outlining the organization and hierarchy of the project's files and directories.
+    |-- README.md - Contains project overview, setup instructions, and key documentation for developers to quickly understand the project.
+    |-- requirements.txt - Lists all Python package dependencies required to install and run the project.
+    |-- test_api.py - A unit test suite for validating API endpoint functionality and request/response behaviors.
+    |-- utils.py - Provides common utility functions and helper methods used across the project to streamline code and improve reusability.
++-- frontend/ - Contains React-based user interface components and logic for the web application's client-side rendering and interactions.
+    |-- eslint.config.mjs - Configures ESLint rules and settings for code quality and consistency across the project.
+    |-- next-env.d.ts - Contains TypeScript type declarations for Next.js environment variables and global types to enhance type safety and IDE support.
+    |-- next.config.ts - A configuration file for customizing Next.js project settings, build behavior, and application-wide parameters.
+    |-- package-lock.json - Automatically locks and tracks precise dependency versions for npm to ensure consistent installations across different development environments.
+    |-- package.json - Defines project metadata, dependencies, scripts, and configuration for a Node.js or JavaScript project.
+    |-- postcss.config.mjs - Configures PostCSS plugins and settings for processing CSS during the build or development workflow.
+    |-- README.md - A documentation file providing an overview, setup instructions, and key information about the project.
+    |-- tsconfig.json - Configures TypeScript compiler options and project settings for the TypeScript build process.
+    +-- public/ - Serves as the root directory for static assets and files directly accessible to web browsers, typically including HTML, images, and other public-facing resources.
+        |-- file.svg - A scalable vector graphic image file used for displaying resolution-independent graphics or icons.
+        |-- globe.svg - A scalable vector graphic icon representing a global or worldwide concept, likely used for geographical or international-themed design elements.
+        |-- next.svg - An SVG icon or logo file used in the Next.js project for branding or visual design purposes.
+        |-- vercel.svg - An SVG vector image file likely used as a logo or icon representing the Vercel platform or service.
+        |-- window.svg - An SVG file representing a graphical window icon or symbol, likely used for visual design or user interface elements.
+    +-- src/ - Contains the main source code files for the project's core implementation and business logic.
+        +-- app/ - Contains the core application logic, components, and structure for the main application.
+            |-- favicon.ico - A small icon file used as the website's favicon, displayed in browser tabs and bookmarks.
+            |-- globals.css - Global stylesheet that defines base styles, CSS reset, and universal design tokens for consistent theming across the application.
+            |-- layout.tsx - A React component that defines the overall page structure and shared layout elements for the application.
+            |-- page.tsx - A React server component defining the layout and rendering logic for a specific page within the web application.
++-- prompts/ - Contains predefined text prompts and templates used for guiding AI model interactions or generating specific types of textual output.
+    |-- system_prompt.txt - A text file containing predefined instructions or initial context for guiding AI model responses.
++-- scripts/ - Contains utility scripts for automating project tasks, build processes, deployment, or development workflows.
+    |-- generate_docs.py - A Python script responsible for automatically generating documentation or reference materials for the project.
+    |-- update_docs.py - A Python script responsible for automatically generating or updating project documentation based on certain parameters or source code analysis.
