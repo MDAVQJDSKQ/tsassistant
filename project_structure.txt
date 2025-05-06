@@ -1,35 +1,69 @@
-    |-- backend_server.py - Handles server-side logic and API endpoints for the application's backend functionality.
-    |-- config.py - A configuration file that stores application-wide settings, environment variables, and global parameters for easy management and customization.
-    |-- main.py - The primary entry point for executing the application's core functionality and orchestrating program flow.
-    |-- minimal_chatbot.py - A lightweight Python script implementing a basic conversational AI with simple interaction capabilities.
-    |-- project_structure.txt - A plaintext document outlining the organization and hierarchy of the project's files and directories.
-    |-- README.md - Contains project overview, setup instructions, and key documentation for developers to quickly understand the project.
-    |-- requirements.txt - Lists all Python package dependencies required to install and run the project.
-    |-- test_api.py - A unit test suite for validating API endpoint functionality and request/response behaviors.
-    |-- utils.py - Provides common utility functions and helper methods used across the project to streamline code and improve reusability.
-+-- frontend/ - Contains React-based user interface components and logic for the web application's client-side rendering and interactions.
-    |-- eslint.config.mjs - Configures ESLint rules and settings for code quality and consistency across the project.
-    |-- next-env.d.ts - Contains TypeScript type declarations for Next.js environment variables and global types to enhance type safety and IDE support.
-    |-- next.config.ts - A configuration file for customizing Next.js project settings, build behavior, and application-wide parameters.
-    |-- package-lock.json - Automatically locks and tracks precise dependency versions for npm to ensure consistent installations across different development environments.
-    |-- package.json - Defines project metadata, dependencies, scripts, and configuration for a Node.js or JavaScript project.
-    |-- postcss.config.mjs - Configures PostCSS plugins and settings for processing CSS during the build or development workflow.
-    |-- README.md - A documentation file providing an overview, setup instructions, and key information about the project.
-    |-- tsconfig.json - Configures TypeScript compiler options and project settings for the TypeScript build process.
-    +-- public/ - Serves as the root directory for static assets and files directly accessible to web browsers, typically including HTML, images, and other public-facing resources.
-        |-- file.svg - A scalable vector graphic image file used for displaying resolution-independent graphics or icons.
-        |-- globe.svg - A scalable vector graphic icon representing a global or worldwide concept, likely used for geographical or international-themed design elements.
-        |-- next.svg - An SVG icon or logo file used in the Next.js project for branding or visual design purposes.
-        |-- vercel.svg - An SVG vector image file likely used as a logo or icon representing the Vercel platform or service.
-        |-- window.svg - An SVG file representing a graphical window icon or symbol, likely used for visual design or user interface elements.
-    +-- src/ - Contains the main source code files for the project's core implementation and business logic.
-        +-- app/ - Contains the core application logic, components, and structure for the main application.
-            |-- favicon.ico - A small icon file used as the website's favicon, displayed in browser tabs and bookmarks.
-            |-- globals.css - Global stylesheet that defines base styles, CSS reset, and universal design tokens for consistent theming across the application.
-            |-- layout.tsx - A React component that defines the overall page structure and shared layout elements for the application.
-            |-- page.tsx - A React server component defining the layout and rendering logic for a specific page within the web application.
-+-- prompts/ - Contains predefined text prompts and templates used for guiding AI model interactions or generating specific types of textual output.
-    |-- system_prompt.txt - A text file containing predefined instructions or initial context for guiding AI model responses.
-+-- scripts/ - Contains utility scripts for automating project tasks, build processes, deployment, or development workflows.
-    |-- generate_docs.py - A Python script responsible for automatically generating documentation or reference materials for the project.
-    |-- update_docs.py - A Python script responsible for automatically generating or updating project documentation based on certain parameters or source code analysis.
+    |-- .gitignore - A configuration file that specifies which files and directories should be ignored by Git version control.
+    |-- project_structure.txt - A documentation file that outlines the organization and hierarchy of the project's files and directories.
+    |-- README.md - A documentation file that provides an overview of the project, installation instructions, and usage examples.
+    |-- requirements.txt - Lists all the external Python package dependencies required for the project to run properly.
++-- backend/ - Houses the server-side application code and API implementations.
+    |-- backend_server.py - Handles API requests and database interactions for the application's server-side operations.
+    |-- config.py - Sets up configuration variables and environment settings for the application.
+    |-- main.py - Serves as the entry point for the application, initializing core components and coordinating the overall program flow.
+    |-- minimal_chatbot.py - A simple implementation of a conversational AI system that processes user inputs and generates appropriate responses.
+    |-- test_api.py - Implements automated tests to verify the functionality and behavior of the API endpoints.
+    |-- utils.py - A utility module containing helper functions for common tasks across the project.
+    +-- convos/ - Contains conversations or dialogue-related content for the application.
+        |-- 4f8acad4-ed7b-46d9-bf21-8369e16bf3b4.json - A unique JSON file likely containing configuration data or serialized information identified by a UUID.
+        |-- 532bd914-125c-472d-96ff-c95eef02b946.json - Storage file containing serialized application data in JSON format.
+        |-- a788a2c1-1e6c-4eb1-8e7c-5c1ad7393b40.json - A configuration file containing unique identifier mappings for system integration.
+    +-- prompts/ - A collection of template instructions and guidance texts used to direct AI behavior for different use cases.
+        |-- system_prompt.txt - Contains the primary instructions for an AI assistant that define its behavior, role, and limitations when generating descriptions of project files and directories.
+    +-- scripts/ - Contains utility scripts for automation, build processes, and development workflows.
+        |-- generate_docs.py - A utility script that automatically produces documentation for the project by parsing code files and their docstrings.
+        |-- migrate_conversation_files.py - Script that moves conversation files from one storage location to another while preserving their organization structure.
+        |-- update_docs.py - A script that automates the process of updating documentation files within the project.
++-- frontend/ - Contains all client-side code including UI components, styling, and browser-based logic.
+    |-- .gitignore - Specifies files and directories to be ignored by Git version control.
+    |-- components.json - Configuration file that defines the project's UI components and their styling parameters for consistent design across the application.
+    |-- eslint.config.mjs - Configuration file for ESLint that defines code linting rules and settings for the project.
+    |-- next.config.ts - Configuration file for Next.js applications with TypeScript support.
+    |-- package-lock.json - A generated file that locks dependencies to specific versions for consistent installations across different environments.
+    |-- package.json - Configuration file containing project metadata, dependencies, and scripts for a Node.js application.
+    |-- postcss.config.mjs - Configuration file for PostCSS that defines plugins and processing options for CSS transformations.
+    |-- README.md - Provides essential documentation, instructions, and an overview of the project for users and contributors.
+    |-- tailwind.config.ts - Configuration file that customizes Tailwind CSS settings for the project.
+    |-- tsconfig.json - Configuration file that defines TypeScript compiler options and project settings.
+    +-- public/ - Contains static assets and resources directly accessible to website visitors without authentication.
+        |-- file.svg - A vector-based graphic file used for illustrations or icons that maintains quality at any scale.
+        |-- globe.svg - A vector graphic icon of a globe or world map, typically used for website navigation or to represent global/international concepts.
+        |-- next.svg - A visual asset containing the Next.js framework logo.
+        |-- vercel.svg - A logo or brand asset for Vercel, the deployment platform.
+        |-- window.svg - A scalable vector graphic icon representing a window, likely used in a user interface.
+    +-- src/ - Contains the source code for the application.
+        +-- app/ - Main application directory containing core functionality and implementation code.
+            |-- favicon.ico - An icon displayed in browser tabs and bookmarks when users visit the website.
+            |-- globals.css - Defines core styling rules and variables used throughout the application.
+            |-- layout.tsx - Defines the overall page structure and imports global styles for the application.
+            |-- page.tsx - Main React component that renders the application's primary user interface.
+            +-- api/ - Contains backend endpoints and request handlers that serve data to the application.
+                |-- chat.ts - Implements the chat interface and handling of conversation interactions.
+                +-- chat/ - Contains components for rendering chat interactions and message processing functionality.
+                    |-- route.ts - Manages API routing and request handling for the application.
+                +-- conversations/ - Storage for dialogue exchanges between users and AI assistants.
+                    +-- create/ - Contains scripts and components responsible for implementing the create functionality for resources.
+                        |-- route.ts - Defines routing functionality to handle navigation between different parts of the application.
+                    +-- list/ - Contains implementations and utilities for manipulating and working with list data structures.
+                        |-- route.ts - Defines API routing logic to handle HTTP requests and direct them to appropriate handlers.
+                    +-- [id]/ - A dynamic route directory that handles individual item details based on a unique identifier.
+                        +-- messages/ - Storage location for system and user message templates used in conversations with the AI.
+                            |-- route.ts - Defines API endpoints and request handlers for the application.
+        +-- components/ - Contains reusable UI building blocks used throughout the application.
+            +-- ui/ - Contains user interface components, visual elements, and layout designs for the application's frontend.
+                |-- button.tsx - A reusable UI component that renders a customizable button with various style options and interaction states.
+                |-- input.tsx - Defines a reusable input component with customizable styling, validation support, and form integration capabilities.
+                |-- separator.tsx - A component that renders a horizontal or vertical dividing line to visually separate content sections.
+                |-- sheet.tsx - A component that renders a responsive bottom sheet with customizable height, handle, and content areas.
+                |-- sidebar.tsx - Renders a navigation sidebar with collapsible categories displaying project structure.
+                |-- skeleton.tsx - Provides the essential layout structure and common components that wrap around all page content.
+                |-- tooltip.tsx - A component that displays contextual information or help text when hovering over an element.
+        +-- hooks/ - Contains custom event hook implementations that extend or modify the application's behavior at specific points in its lifecycle.
+            |-- use-mobile.ts - Provides a custom hook to detect and respond to mobile device usage.
+        +-- lib/ - Contains reusable code modules and utility functions that support the application's core functionality.
+            |-- utils.ts - A utility module containing helper functions used throughout the project.
