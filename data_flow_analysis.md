@@ -16,10 +16,10 @@ The `tsassistant` application consists of several key components:
 
 ```mermaid
 graph LR
-    UserInterface[Client UI (Browser - Next.js Frontend)] --> NextAPIRoutes[Next.js API Routes];
-    NextAPIRoutes --> PythonBackend[Python Backend (FastAPI + LangChain)];
-    PythonBackend --> LLM[LLM (OpenRouter)];
-    PythonBackend <--> FileSystem[File System (convos/)];
+    UserInterface["Client UI (Browser - Next.js Frontend)"] --> NextAPIRoutes["Next.js API Routes"]
+    NextAPIRoutes --> PythonBackend["Python Backend (FastAPI + LangChain)"]
+    PythonBackend --> LLM["LLM (OpenRouter)"]
+    PythonBackend <--> FileSystem["File System (convos/)"]
 ```
 
 ## 3. Detailed Data Flow: Core Chat Functionality (`/api/chat`)
