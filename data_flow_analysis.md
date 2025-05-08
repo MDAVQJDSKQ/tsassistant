@@ -140,45 +140,8 @@ graph TD
 
         E --> J
         J --> K{"Update Memory"}
-        C <-- "Save Context (human_input, ai_response_content)" -- K
+        K -- "Save Context (human_input, ai_response_content)" --> C
         C -- "Save to File (utils.save_conversation_history)" --> L["File System"]
         J --> M["Return AI Response String to Frontend"]
     end
 ```
-
-## 6. Deep Dive: Conversation Persistence (`utils.py`)
-
-The `backend/utils.py` file contains functions for managing conversation data on disk:
-
-*   **`generate_new_conversation_id()`:** Creates a unique UUID for new conversations.
-*   **`save_conversation_history()`:** Takes a `ConversationBufferWindowMemory` object and a `conversation_id`, serializes the messages (HumanMessage, AIMessage) into a JSON list `[{"type": "human"|"ai", "content": "..."}]`, and saves it to `backend/convos/{conversation_id}.json`.
-*   **`load_conversation_history()`:** Takes a `ConversationBufferWindowMemory` object and `conversation_id`, reads the corresponding JSON file, deserializes the messages back into LangChain `HumanMessage` and `AIMessage` objects, and populates the memory object.
-*   **`list_conversations()`:** Scans the `backend/convos/` directory for valid `.json` files (named with UUIDs) and returns a list of `{"id": "...", "name": "..."}` dictionaries.
-*   **`load_latest_conversation_history()`:** Finds the most recently modified conversation file in `backend/convos/` and loads it into memory (used during server startup in `main.py`, though that file's chat endpoint is deprecated).
-
-```mermaid
-graph TD
-    subgraph "Save Conversation"
-        direction LR
-        S_Memory["ConversationBufferWindowMemory (in-memory)"] -- "Messages & convo_id" --> S_SaveFunc["save_conversation_history"]
-        S_SaveFunc -- "Serializes Messages" --> S_JSONData["JSON Data"]
-        S_JSONData -- "Writes to" --> S_File["File System (backend/convos/convo_id.json)"]
-    end
-
-    subgraph "Load Conversation"
-        direction LR
-        L_File["File System (backend/convos/convo_id.json)"] -- "convo_id" --> L_LoadFunc["load_conversation_history"]
-        L_LoadFunc -- "Reads & Deserializes" --> L_JSONData["JSON Data"]
-        L_JSONData -- "Reconstructs Messages" --> L_Memory["ConversationBufferWindowMemory (in-memory)"]
-    end
-```
-
-## 7. Key Observations & Potential Areas for Improvement
-
-*   **Streaming Discrepancy:** A key observation is the difference in streaming behavior. The Next.js frontend API route (`frontend/src/app/api/chat/route.ts`) is designed to handle a stream of JSON objects from the backend (each containing a piece of the AI's response, like `{"content": "..."}\n`). However, the Python backend (`backend/backend_server.py` at the `/api/chat` endpoint) currently generates the *entire* AI response and then sends it as a *single* JSON object (`{"role": "assistant", "content": "Full AI Response"}`).
-    *   **Impact:** This means that true token-by-token streaming to the end-user's browser is not currently implemented. The user will only see the response once the backend has fully generated it.
-    *   **Potential Improvement:** To enable true streaming, the Python backend's `/api/chat` endpoint would need to be modified to use a streaming response mechanism (e.g., FastAPI's `StreamingResponse`) and the LangChain chain would need to be configured to stream its output token by token (e.g., using `chain.stream()` instead of `chain.invoke()`). The frontend's `TransformStream` is already well-suited to handle such a stream of JSON chunks.
-
-## 8. Conclusion
-
-This document has outlined the data flow within the `tsassistant` application, covering user interactions, frontend and backend processing, LLM communication, and data persistence. The provided diagrams and explanations should offer a solid foundation for understanding the current architecture and for planning future development, particularly regarding the identified streaming discrepancy.
