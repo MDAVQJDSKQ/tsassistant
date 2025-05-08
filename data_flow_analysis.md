@@ -122,27 +122,27 @@ The core of the chat logic in the Python backend relies on LangChain components:
 
 ```mermaid
 graph TD
-    subgraph Backend Server - /api/chat - LangChain Details
-        A[Incoming Request: human_input, system_message, conversation_id] --> B{Memory Cache};
-        B -- Get/Create --> C[ConversationBufferWindowMemory];
-        C -- Load from File (utils.load_conversation_history) --> C;
+    subgraph "Backend Server - /api/chat - LangChain Details"
+        A["Incoming Request: human_input, system_message, conversation_id"] --> B{"Memory Cache"}
+        B -- "Get/Create" --> C["ConversationBufferWindowMemory"]
+        C -- "Load from File (utils.load_conversation_history)" --> C
 
-        D[chain_input_dict: human_input, system_message] --> E[LCEL Chain];
+        D["chain_input_dict: human_input, system_message"] --> E["LCEL Chain"]
 
-        subgraph LCEL Chain Execution
+        subgraph "LCEL Chain Execution"
             direction LR
-            F[chain_input_passthrough] -- Adds chat_history --> G[PromptTemplate];
-            C -- Provides chat_history via load_memory_runnable --> F;
-            G -- Formatted Prompt String --> H[ChatOpenAI (LLM)];
-            H -- AIMessage --> I[StrOutputParser];
-            I -- AI Response String --> J[ai_response_content];
+            F["chain_input_passthrough"] -- "Adds chat_history" --> G["PromptTemplate"]
+            C -- "Provides chat_history via load_memory_runnable" --> F
+            G -- "Formatted Prompt String" --> H["ChatOpenAI (LLM)"]
+            H -- "AIMessage" --> I["StrOutputParser"]
+            I -- "AI Response String" --> J["ai_response_content"]
         end
 
-        E --> J;
-        J --> K{Update Memory};
-        C <-- Save Context (human_input, ai_response_content) -- K;
-        C -- Save to File (utils.save_conversation_history) --> L[File System];
-        J --> M[Return AI Response String to Frontend];
+        E --> J
+        J --> K{"Update Memory"}
+        C <-- "Save Context (human_input, ai_response_content)" -- K
+        C -- "Save to File (utils.save_conversation_history)" --> L["File System"]
+        J --> M["Return AI Response String to Frontend"]
     end
 ```
 
@@ -158,18 +158,18 @@ The `backend/utils.py` file contains functions for managing conversation data on
 
 ```mermaid
 graph TD
-    subgraph Save Conversation
+    subgraph "Save Conversation"
         direction LR
-        S_Memory[ConversationBufferWindowMemory (in-memory)] -- Messages & convo_id --> S_SaveFunc[save_conversation_history];
-        S_SaveFunc -- Serializes Messages --> S_JSONData[JSON Data];
-        S_JSONData -- Writes to --> S_File[File System (backend/convos/convo_id.json)];
+        S_Memory["ConversationBufferWindowMemory (in-memory)"] -- "Messages & convo_id" --> S_SaveFunc["save_conversation_history"]
+        S_SaveFunc -- "Serializes Messages" --> S_JSONData["JSON Data"]
+        S_JSONData -- "Writes to" --> S_File["File System (backend/convos/convo_id.json)"]
     end
 
-    subgraph Load Conversation
+    subgraph "Load Conversation"
         direction LR
-        L_File[File System (backend/convos/convo_id.json)] -- convo_id --> L_LoadFunc[load_conversation_history];
-        L_LoadFunc -- Reads & Deserializes --> L_JSONData[JSON Data];
-        L_JSONData -- Reconstructs Messages --> L_Memory[ConversationBufferWindowMemory (in-memory)];
+        L_File["File System (backend/convos/convo_id.json)"] -- "convo_id" --> L_LoadFunc["load_conversation_history"]
+        L_LoadFunc -- "Reads & Deserializes" --> L_JSONData["JSON Data"]
+        L_JSONData -- "Reconstructs Messages" --> L_Memory["ConversationBufferWindowMemory (in-memory)"]
     end
 ```
 
