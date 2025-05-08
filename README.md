@@ -18,6 +18,23 @@ A real-time chatbot application built with LangChain and Next.js. This project p
 
 2. Set up the Python environment:
    ```bash
+   python -m venv venv
+   ```
+
+   **Activate the environment:**
+
+   - **Windows (PowerShell):**
+     ```powershell
+     .\venv\Scripts\Activate.ps1
+     ```
+
+   - **Mac or Linux:**
+     ```bash
+     source venv/bin/activate
+     ```
+
+   Then install dependencies:
+   ```bash
    pip install -r requirements.txt
    ```
 
