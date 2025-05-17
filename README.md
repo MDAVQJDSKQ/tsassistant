@@ -1,118 +1,140 @@
-# LangChain Chat Application
+# Chatbot Framework
 
 ## Overview
-A real-time chatbot application built with LangChain and Next.js. This project provides a full-stack solution with a FastAPI backend handling LangChain processing and a Next.js frontend for user interactions. The application supports conversation history persistence, conversation management, and streaming responses from AI models via OpenRouter.
+
+The Chatbot Framework is a full-stack application that provides a user-friendly interface for conversational AI interactions. It consists of a React/Next.js frontend and a Python (FastAPI) backend that integrates with language model APIs. The system allows users to create and manage multiple conversations with customizable parameters such as model selection, temperature settings, and system directives.
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.8 or higher
-- Node.js 18 or higher
+
+- Node.js (for frontend)
+- Python 3.8+ (for backend)
 - OpenRouter API key
 
-### Backend Setup
-1. Clone the repository:
+### Installation
+
+1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/MDAVQJDSKQ/tsassistant.git
+   git clone <repository-url>
+   cd chatbot-framework
    ```
 
-2. Set up the Python environment:
+2. **Set up the backend**
+
    ```bash
+   cd backend
+   
+   # Create a virtual environment
    python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install dependencies
+   pip install -r ../requirements.txt
+   
+   # Create a .env file with your API key
+   echo "OPENROUTER_API_KEY=your_api_key_here" > .env
    ```
 
-   **Activate the environment:**
+3. **Set up the frontend**
 
-   - **Windows (PowerShell):**
-     ```powershell
-     .\venv\Scripts\Activate.ps1
-     ```
-
-   - **Mac or Linux:**
-     ```bash
-     source venv/bin/activate
-     ```
-
-   Then install dependencies:
    ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Create a `.env` file in the backend directory with:
-   ```
-   OPENROUTER_API_KEY=your_openrouter_api_key
-   ```
-
-4. Start the backend server:
-   ```bash
-   python -m backend.backend_server
-   ```
-
-### Frontend Setup
-1. Install dependencies:
-   ```bash
-   cd frontend
+   cd ../frontend
+   
+   # Install dependencies
    npm install
+   
+   # Create a .env.local file for frontend environment variables
+   echo "BACKEND_API_URL=http://localhost:8000" > .env.local
    ```
 
-2. Start the development server:
+### Running the Application
+
+1. **Start the backend server**
+
    ```bash
+   cd backend
+   python backend_server.py
+   ```
+   
+   This will start the FastAPI server on http://localhost:8000
+
+2. **Start the frontend development server**
+
+   ```bash
+   cd ../frontend
    npm run dev
    ```
+   
+   This will start the Next.js development server with Turbopack on http://localhost:3000
 
-3. Access the application at http://localhost:3000
+3. **Access the application**
+   
+   Open your browser and navigate to http://localhost:3000
 
 ## Tech Stack
 
 ### Backend
-- **Python**: Core programming language
-- **FastAPI**: Web framework for the backend API
-- **LangChain**: Framework for building applications with language models
-- **Uvicorn**: ASGI server for serving the FastAPI application
+- Python
+- FastAPI
+- Uvicorn
+- LangChain
+- Pydantic
 
 ### Frontend
-- **TypeScript**: Programming language
-- **Next.js**: React framework for web applications
-- **TailwindCSS**: Utility-first CSS framework
-- **Radix UI**: Unstyled, accessible UI components
-- **AI SDK**: Tools for integrating AI capabilities in React applications
+- Next.js
+- TypeScript
+- React
+- Tailwind CSS
+- Radix UI components
+- AI SDK (OpenAI integration)
 
 ## Features
 
-### Core Functionality
-- **Conversational AI Interface**: Interactive chatbot powered by LangChain
-- **Conversation Management**: Create, list, and load conversation history
-- **Persistent Storage**: Save and retrieve conversations using UUID-based file storage
-- **Streaming Responses**: Real-time AI responses using streaming capabilities
+### Conversation Management
+- Create new conversations with unique IDs
+- List existing conversations
+- Load conversation history
+- Save conversation state between sessions
 
-### Developer Tools
-- **Documentation Generation**: Scripts to generate project structure documentation
-- **Conversation Migration**: Tool to migrate conversation files to UUID format
-- **API Testing**: Test endpoints for backend validation
+### Customizable AI Parameters
+- Select different language models (e.g., OpenAI GPT-4.1, Google Gemma)
+- Customize system prompts/directives
+- Adjust temperature settings for response randomness
 
 ### User Interface
-- **Responsive Design**: Mobile and desktop friendly interface
-- **Sidebar Navigation**: Easy access to previous conversations
-- **Real-time Interactions**: Instant feedback during chat sessions
+- Responsive design with mobile support
+- Dark mode support
+- Clean, modern UI components using shadcn/ui
+- Real-time streaming responses
+
+### API Integration
+- OpenRouter API integration for accessing various language models
+- Backend proxy to secure API keys
+- Structured API endpoints for conversation management
+
+### Documentation Tools
+- Automated project structure documentation
+- README generation with AI assistance
+- Cross-platform documentation update scripts
 
 ## Project Structure
 
-### Backend
-- `backend_server.py`: FastAPI server implementation with chat endpoints
-- `config.py`: Configuration settings for the chatbot
-- `main.py`: Main application entry point
-- `utils.py`: Utility functions for conversation management
-- `minimal_chatbot.py`: Simplified chatbot for testing/development
-- `prompts/`: Directory containing system prompts
-- `convos/`: Directory storing conversation history as JSON files
-- `scripts/`: Utility scripts for documentation and maintenance
+- `/backend/` - Python backend server and utilities
+  - `backend_server.py` - Main FastAPI server implementation
+  - `minimal_chatbot.py` - Simplified chatbot implementation
+  - `config.py` - Configuration settings
+  - `utils.py` - Helper functions for conversation management
+  - `/convos/` - Directory for storing conversation history
+  - `/prompts/` - System prompts and templates
+  - `/scripts/` - Utility scripts for documentation
 
-### Frontend
-- `src/app/`: Main Next.js application code
-- `src/components/`: UI components (buttons, inputs, sidebar, etc.)
-- `src/hooks/`: Custom React hooks
-- `src/lib/`: Utility functions
-- `public/`: Static assets
-- `api/`: API route handlers for frontend-to-backend communication
+- `/frontend/` - Next.js frontend application
+  - `/src/app/` - Next.js app router pages and API routes
+  - `/src/components/` - UI components
+  - `/src/hooks/` - Custom React hooks
+  - `/src/lib/` - Utility functions
 
-The application uses a client-server architecture where the Next.js frontend communicates with the FastAPI backend to process chat interactions through the LangChain framework, providing a seamless chat experience.
+- `/conversations/` - Stored conversation configurations
+  - Each conversation has a unique UUID folder with configuration

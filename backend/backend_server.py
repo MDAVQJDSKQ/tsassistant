@@ -7,6 +7,9 @@ import uvicorn
 from typing import List, Dict # Added for response models
 import os
 import json
+import uuid # Add this import
+import time
+import shutil # Add this for directory deletion
 
 # --- Add CORS Middleware ---
 from fastapi.middleware.cors import CORSMiddleware
@@ -136,7 +139,7 @@ app.add_middleware(
 # ---------------------
 
 def load_conversation_config(conversation_id: str) -> dict:
-    cfg_path = os.path.join("conversations", conversation_id, "config.json")
+    cfg_path = os.path.join("backend", "conversations", conversation_id, "config.json")
     if os.path.exists(cfg_path):
         with open(cfg_path, "r") as f:
             return json.load(f)
@@ -351,7 +354,7 @@ async def get_conversation_messages_endpoint(conversation_id: str):
 async def save_conversation_config(cfg: ConversationConfig):
     try:
         cfg.temperature = _clamp_temperature(cfg.temperature)
-        cfg_dir = os.path.join("conversations", cfg.conversation_id)
+        cfg_dir = os.path.join("backend", "conversations", cfg.conversation_id)
         os.makedirs(cfg_dir, exist_ok=True)
         with open(os.path.join(cfg_dir, "config.json"), "w") as f:
             json.dump(cfg.dict(), f, indent=2)
@@ -367,6 +370,43 @@ async def get_conversation_config(conversation_id: str):
         return data              # always 200
     except Exception as e:
         raise HTTPException(500, f"Failed to load configuration: {e}")
+
+@app.delete("/api/conversations/{conversation_id}")
+async def delete_conversation_endpoint(conversation_id: str):
+    """
+    Deletes a conversation by ID, including all its data and configuration
+    """
+    try:
+        print(f"API: Request to delete conversation_id: {conversation_id}")
+        
+        # Check if conversation exists
+        conversation_history_path = os.path.join("backend", "conversations", "history", f"{conversation_id}.json")
+        conversation_config_dir = os.path.join("backend", "conversations", conversation_id)
+        
+        if not os.path.exists(conversation_history_path) and not os.path.exists(conversation_config_dir):
+            raise HTTPException(status_code=404, detail=f"Conversation {conversation_id} not found")
+        
+        # Delete the conversation history file if it exists
+        if os.path.exists(conversation_history_path):
+            os.remove(conversation_history_path)
+            print(f"Deleted conversation history file: {conversation_history_path}")
+        
+        # Delete the configuration directory if it exists
+        if os.path.exists(conversation_config_dir):
+            shutil.rmtree(conversation_config_dir)
+            print(f"Deleted conversation config directory: {conversation_config_dir}")
+        
+        # Clear from memory cache if it exists
+        if conversation_id in memory_cache:
+            del memory_cache[conversation_id]
+            print(f"Removed conversation from memory cache: {conversation_id}")
+        
+        return {"status": "success", "message": f"Conversation {conversation_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"API Error: Error deleting conversation: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete conversation: {e}")
 
 # --- Add logic to run the server if this script is executed directly ---
 if __name__ == "__main__":

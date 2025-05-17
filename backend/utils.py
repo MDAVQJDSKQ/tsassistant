@@ -10,7 +10,7 @@ from langchain.schema import BaseMessage, HumanMessage, AIMessage
 def save_conversation_history(
     memory: ConversationBufferWindowMemory,
     conversation_id: str, # Added conversation_id
-    base_dir: str = "backend/convos"
+    base_dir: str = "backend/conversations/history"
 ) -> str:
     """
     Save conversation history to a JSON file named with the conversation_id.
@@ -52,7 +52,7 @@ def save_conversation_history(
 def load_conversation_history( # Renamed and signature changed
     memory: ConversationBufferWindowMemory,
     conversation_id: str, # Added conversation_id
-    base_dir: str = "backend/convos"
+    base_dir: str = "backend/conversations/history"
 ) -> bool:
     """
     Load conversation history for a specific conversation_id
@@ -106,7 +106,7 @@ def load_conversation_history( # Renamed and signature changed
 
 def load_latest_conversation_history(
     memory: ConversationBufferWindowMemory,
-    base_dir: str = "backend/convos"
+    base_dir: str = "backend/conversations/history"
 ) -> bool:
     """
     Load the most recently modified conversation history into memory.
@@ -152,7 +152,7 @@ def generate_new_conversation_id() -> str:
     """Generates a new unique conversation ID using UUID4."""
     return str(uuid.uuid4())
 
-def list_conversations(base_dir: str = "backend/convos") -> List[Dict[str, str]]:
+def list_conversations(base_dir: str = "backend/conversations/history") -> List[Dict[str, str]]:
     """
     Lists all saved conversation files (UUIDs) and provides a short name.
     Returns a list of dictionaries, e.g., [{"id": "uuid-string", "name": "uuid-st..."}].

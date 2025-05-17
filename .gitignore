@@ -7,5 +7,9 @@ __pycache__/
 *.pyc
 
 # Conversation files
-backend/convos/*.json
-!backend/convos/.gitkeep
+backend/conversations/history/*.json
+!backend/conversations/history/.gitkeep
+
+# Ignore conversation config directories but keep main structure
+backend/conversations/*/
+!backend/conversations/.gitkeep
