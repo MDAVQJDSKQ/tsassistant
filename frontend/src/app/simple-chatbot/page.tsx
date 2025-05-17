@@ -23,6 +23,7 @@ import { ConversationSidebar } from "@/components/Chat/ConversationSidebar"
 import { ChatDisplay } from "@/components/Chat/ChatDisplay"
 import { ChatInput } from "@/components/Chat/ChatInput"
 import { ConfigPanel } from "@/components/Chat/ConfigPanel"
+import { SettingsMenu } from "@/components/Settings/SettingsMenu"
 
 interface Conversation {
   id: string
@@ -35,6 +36,14 @@ export default function ChatPage() {
   const [activeConversation, setActiveConversation] = useState<string | null>(null) // Initialize with null
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Add settings state
+  const [backendModel, setBackendModel] = useState("openrouter");
+  const [apiKey, setApiKey] = useState("");
+  
+  // Add resize state
+  const [chatPanelWidth, setChatPanelWidth] = useState(50); // 50% initial width
+  const [isResizing, setIsResizing] = useState(false);
 
   const loadConversationConfig = useCallback(async (id: string) => {
     try {
@@ -53,6 +62,54 @@ export default function ChatPage() {
   const [systemDirective, setSystemDirective] = useState("");
   const [temperature,     setTemperature]     = useState(0.7);
   const [configChanged,   setConfigChanged]   = useState(false);
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('chatSettings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        if (settings.backendModel) setBackendModel(settings.backendModel);
+        if (settings.apiKey) setApiKey(settings.apiKey);
+      } catch (err) {
+        console.error("Error loading settings from localStorage:", err);
+      }
+    }
+  }, []);
+
+  // Function to handle saving settings
+  const handleSaveSettings = useCallback((settings: { backendModel: string; apiKey: string }) => {
+    setBackendModel(settings.backendModel);
+    setApiKey(settings.apiKey);
+    
+    // Save to localStorage
+    localStorage.setItem('chatSettings', JSON.stringify({
+      backendModel: settings.backendModel,
+      apiKey: settings.apiKey
+    }));
+
+    // Send to backend
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        backend_model: settings.backendModel,
+        api_key: settings.apiKey
+      })
+    }).then(response => {
+      if (!response.ok) {
+        return response.text().then(text => {
+          throw new Error(`Failed to save settings: ${text}`);
+        });
+      }
+      console.log("Settings saved successfully");
+    }).catch(err => {
+      console.error("Error saving settings to backend:", err);
+      alert(`Error saving settings: ${err.message}`);
+    });
+  }, []);
 
   const getConversationTitle = useCallback((msgs: Message[], conversationId: string): string => {
     // Check if this is an existing conversation with no messages (just show the ID)
@@ -310,63 +367,49 @@ export default function ChatPage() {
     if (activeConversation) loadConversationConfig(activeConversation);
   }, [activeConversation, loadConversationConfig]);
 
+  // Resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    console.log('Resize start');
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    e.preventDefault(); // Prevent text selection
+  }, []);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    // Get container width
+    const containerWidth = document.querySelector('.flex.flex-1.h-full.w-full')?.getBoundingClientRect().width || 1000;
+    
+    // Calculate new width percentage
+    const newWidthPercent = (e.clientX / containerWidth) * 100;
+    
+    // Apply width constraints (30% - 70%)
+    if (newWidthPercent >= 30 && newWidthPercent <= 70) {
+      setChatPanelWidth(newWidthPercent);
+      console.log('Resize move:', newWidthPercent);
+    }
+  }, [isResizing]);
+
+  const handleResizeEnd = useCallback(() => {
+    console.log('Resize end');
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+  }, [handleResizeMove]);
+
+  // Remove the old resize useEffect
   // Add resize functionality between chat and config panels
   useEffect(() => {
-    const chatPanel = document.querySelector('div.flex.flex-col.flex-grow.h-full.w-1\\/2.relative');
-    const configPanel = document.querySelector('div.flex.flex-col.h-full.border-l.w-1\\/2');
-    const resizeHandle = document.getElementById('resize-handle');
-    
-    if (!chatPanel || !configPanel || !resizeHandle) return;
-    
-    let isResizing = false;
-    let startX = 0;
-    let startChatWidth = 0;
-    let startConfigWidth = 0;
-    
-    const handleMouseDown = (e: MouseEvent) => {
-      isResizing = true;
-      startX = e.clientX;
-      startChatWidth = chatPanel.getBoundingClientRect().width;
-      startConfigWidth = configPanel.getBoundingClientRect().width;
-      document.body.style.cursor = 'col-resize';
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    };
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      
-      const containerWidth = chatPanel.parentElement!.getBoundingClientRect().width;
-      const deltaX = e.clientX - startX;
-      
-      // Calculate new widths as percentages
-      const newChatWidthPercent = ((startChatWidth + deltaX) / containerWidth) * 100;
-      const newConfigWidthPercent = 100 - newChatWidthPercent;
-      
-      // Apply constraints (30% - 70%)
-      if (newChatWidthPercent >= 30 && newChatWidthPercent <= 70) {
-        (chatPanel as HTMLElement).style.width = `${newChatWidthPercent}%`;
-        (configPanel as HTMLElement).style.width = `${newConfigWidthPercent}%`;
-      }
-    };
-    
-    const handleMouseUp = () => {
-      if (isResizing) {
-        isResizing = false;
-        document.body.style.cursor = '';
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      }
-    };
-    
-    resizeHandle.addEventListener('mousedown', handleMouseDown);
-    
+    // Cleanup resize event listeners on unmount
     return () => {
-      resizeHandle.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
     };
-  }, []);
+  }, [handleResizeMove, handleResizeEnd]);
 
   console.log("Render - messages:", messages)
   if (error) console.error("Render - error:", error)
@@ -427,10 +470,19 @@ export default function ChatPage() {
         {/* Main container */}
         <div className="flex flex-1 h-full w-full">
           {/* Chat area wrapper */}
-          <div className="flex flex-col h-full w-1/2 relative">
-            <header className="border-b p-4 flex items-center">
-              <SidebarTrigger className="mr-2 md:hidden" />
-              <h1 className="text-xl font-bold">{conversations.find((c) => c.id === activeConversation)?.title || "Chat"}</h1>
+          <div 
+            id="chat-panel" 
+            className="flex flex-col h-full relative"
+            style={{ width: `${chatPanelWidth}%` }}
+          >
+            <header className="border-b p-4 flex items-center justify-between">
+              <div className="flex items-center">
+                <SidebarTrigger className="mr-2 md:hidden" />
+                <h1 className="text-xl font-bold">{conversations.find((c) => c.id === activeConversation)?.title || "Chat"}</h1>
+              </div>
+              
+              {/* Add settings menu */}
+              <SettingsMenu onSaveSettings={handleSaveSettings} />
             </header>
 
             <ChatDisplay messages={messages} isLoading={isLoading} />
@@ -443,21 +495,32 @@ export default function ChatPage() {
               isConversationActive={!!activeConversation}
             />
             
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-border cursor-col-resize hover:bg-primary/50 transition-colors duration-200"
-                 id="resize-handle"></div>
+            {/* Resize handle - wider and with direct event handler */}
+            <div 
+              className="absolute right-0 top-0 bottom-0 w-6 bg-border/30 cursor-col-resize hover:bg-primary/60 transition-colors duration-200 z-50"
+              id="resize-handle"
+              style={{ transform: 'translateX(3px)' }}
+              onMouseDown={handleResizeStart}
+            ></div>
           </div>
 
-          <ConfigPanel
-            modelName={modelName}
-            setModelName={(value) => { setModelName(value); setConfigChanged(true); }}
-            systemDirective={systemDirective}
-            setSystemDirective={(value) => { setSystemDirective(value); setConfigChanged(true); }}
-            temperature={temperature}
-            setTemperature={(value) => { setTemperature(value); setConfigChanged(true); }}
-            configChanged={configChanged}
-            applyConfiguration={applyConfiguration}
-            isConversationActive={!!activeConversation}
-          />
+          <div 
+            id="config-panel" 
+            className="flex flex-col h-full border-l"
+            style={{ width: `${100 - chatPanelWidth}%` }}
+          >
+            <ConfigPanel
+              modelName={modelName}
+              setModelName={(value) => { setModelName(value); setConfigChanged(true); }}
+              systemDirective={systemDirective}
+              setSystemDirective={(value) => { setSystemDirective(value); setConfigChanged(true); }}
+              temperature={temperature}
+              setTemperature={(value) => { setTemperature(value); setConfigChanged(true); }}
+              configChanged={configChanged}
+              applyConfiguration={applyConfiguration}
+              isConversationActive={!!activeConversation}
+            />
+          </div>
         </div>
       </div>
     </SidebarProvider>

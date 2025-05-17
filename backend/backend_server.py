@@ -4,12 +4,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, field_validator
 import uvicorn
-from typing import List, Dict # Added for response models
+from typing import List, Dict  # Added for response models
 import os
 import json
-import uuid # Add this import
+import uuid  # Add this import
 import time
-import shutil # Add this for directory deletion
+import shutil  # Add this for directory deletion
 
 # --- Add CORS Middleware ---
 from fastapi.middleware.cors import CORSMiddleware
@@ -114,6 +114,19 @@ class ConversationConfig(BaseModel):
     def check_temp(cls, v):
         if v is not None and not (TEMP_MIN <= v <= TEMP_MAX):
             raise ValueError(f"Temperature must be {TEMP_MIN}-{TEMP_MAX}")
+        return v
+
+# Settings model for application-wide settings
+class SettingsModel(BaseModel):
+    backend_model: str
+    api_key: str | None = None
+
+    @field_validator("backend_model")
+    @classmethod
+    def check_backend_model(cls, v):
+        valid_backends = ["openrouter", "openai", "anthropic", "llama"]
+        if v not in valid_backends:
+            raise ValueError(f"Invalid backend model: {v}. Must be one of {valid_backends}")
         return v
 
 class NewConversationResponse(BaseModel):
@@ -374,39 +387,94 @@ async def get_conversation_config(conversation_id: str):
 @app.delete("/api/conversations/{conversation_id}")
 async def delete_conversation_endpoint(conversation_id: str):
     """
-    Deletes a conversation by ID, including all its data and configuration
+    Delete a conversation and all its data
     """
     try:
-        print(f"API: Request to delete conversation_id: {conversation_id}")
+        conversation_dir = os.path.join("backend", "conversations", conversation_id)
         
-        # Check if conversation exists
-        conversation_history_path = os.path.join("backend", "conversations", "history", f"{conversation_id}.json")
-        conversation_config_dir = os.path.join("backend", "conversations", conversation_id)
-        
-        if not os.path.exists(conversation_history_path) and not os.path.exists(conversation_config_dir):
+        # Check if directory exists
+        if not os.path.exists(conversation_dir):
             raise HTTPException(status_code=404, detail=f"Conversation {conversation_id} not found")
+            
+        # Delete the directory and all contents
+        shutil.rmtree(conversation_dir)
         
-        # Delete the conversation history file if it exists
-        if os.path.exists(conversation_history_path):
-            os.remove(conversation_history_path)
-            print(f"Deleted conversation history file: {conversation_history_path}")
-        
-        # Delete the configuration directory if it exists
-        if os.path.exists(conversation_config_dir):
-            shutil.rmtree(conversation_config_dir)
-            print(f"Deleted conversation config directory: {conversation_config_dir}")
-        
-        # Clear from memory cache if it exists
+        # Also remove from memory cache if it exists
         if conversation_id in memory_cache:
             del memory_cache[conversation_id]
-            print(f"Removed conversation from memory cache: {conversation_id}")
-        
-        return {"status": "success", "message": f"Conversation {conversation_id} deleted successfully"}
+            
+        return {"success": True, "message": f"Conversation {conversation_id} deleted successfully"}
     except HTTPException:
-        raise
+        raise  # Re-raise HTTP exceptions
     except Exception as e:
-        print(f"API Error: Error deleting conversation: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete conversation: {e}")
+
+@app.post("/settings")
+async def update_settings(settings: SettingsModel):
+    """
+    Update application-wide settings
+    """
+    try:
+        # Ensure settings directory exists
+        settings_dir = os.path.join("backend", "settings")
+        os.makedirs(settings_dir, exist_ok=True)
+        
+        # Save settings to a file
+        settings_path = os.path.join(settings_dir, "app_settings.json")
+        
+        # Read existing settings if they exist
+        existing_settings = {}
+        if os.path.exists(settings_path):
+            with open(settings_path, "r") as f:
+                try:
+                    existing_settings = json.load(f)
+                except json.JSONDecodeError:
+                    # File exists but is not valid JSON, overwrite it
+                    pass
+        
+        # Update with new settings
+        existing_settings["backend_model"] = settings.backend_model
+        
+        # Only update API key if provided
+        if settings.api_key:
+            # In production you would store this more securely
+            existing_settings["api_key"] = settings.api_key
+        
+        # Write back to file
+        with open(settings_path, "w") as f:
+            json.dump(existing_settings, f)
+        
+        return {"success": True, "message": "Settings updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update settings: {str(e)}")
+
+@app.get("/settings")
+async def get_settings():
+    """
+    Get current application-wide settings
+    """
+    settings_path = os.path.join("backend", "settings", "app_settings.json")
+    
+    if not os.path.exists(settings_path):
+        # Return defaults if no settings file exists
+        return {
+            "backend_model": "openrouter",
+            "api_key_configured": False
+        }
+    
+    try:
+        with open(settings_path, "r") as f:
+            settings = json.load(f)
+            
+        # Never return the actual API key, just if it's configured
+        api_key_configured = "api_key" in settings and settings["api_key"] is not None
+        
+        return {
+            "backend_model": settings.get("backend_model", "openrouter"),
+            "api_key_configured": api_key_configured
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load settings: {str(e)}")
 
 # --- Add logic to run the server if this script is executed directly ---
 if __name__ == "__main__":
