@@ -37,13 +37,19 @@ export async function POST(req: Request) {
 
     // Option 2: Using the Python backend that already streams
     const backendUrl = "http://localhost:8000/api/chat";
+    
+    const payload: Record<string, unknown> = {
+      messages,
+      conversation_id,
+    };
+    ["model_name","system_directive","temperature"].forEach((k) => {
+      if (body[k] !== undefined && body[k] !== null) payload[k] = body[k];
+    });
+    
     const backendResponse = await fetch(backendUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: messages,
-        conversation_id: conversation_id // Removed "|| default"
-      })
+      body: JSON.stringify(payload)
     });
 
     console.log(`Frontend API Route: Backend fetch response status: ${backendResponse.status}`);

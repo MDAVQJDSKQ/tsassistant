@@ -32,6 +32,24 @@ export default function ChatPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  const loadConversationConfig = useCallback(async (id: string) => {
+    try {
+      const res  = await fetch(`/api/conversations/${id}/config`);
+      const data = await res.json();
+      setModelName(data.model_name || "anthropic/claude-3.5-haiku");
+      setSystemDirective(data.system_directive || "");
+      setTemperature(data.temperature ?? 0.7);
+      setConfigChanged(false);
+    } catch (err) {
+      console.error("CFG load failed", err);
+    }
+  }, []);
+
+  const [modelName,       setModelName]       = useState("anthropic/claude-3.5-haiku");
+  const [systemDirective, setSystemDirective] = useState("");
+  const [temperature,     setTemperature]     = useState(0.7);
+  const [configChanged,   setConfigChanged]   = useState(false);
+
   const getConversationTitle = useCallback((msgs: Message[], conversationId: string): string => {
     // Check if this is an existing conversation with no messages (just show the ID)
     if (msgs.length === 0) {
@@ -62,8 +80,10 @@ export default function ChatPage() {
     initialMessages: conversations.find((c) => c.id === activeConversation)?.messages || [],
     api: "/api/chat",
     body: {
-      // Only send conversation_id if it's not null
-      ...(activeConversation && { conversation_id: activeConversation })
+      conversation_id: activeConversation,
+      model_name: modelName,
+      system_directive: systemDirective,
+      temperature: temperature,
     },
     streamProtocol: 'text',
     onFinish: (message) => {
@@ -207,6 +227,10 @@ export default function ChatPage() {
     updateConversationMessages(messages)
   }, [messages, updateConversationMessages])
 
+  useEffect(() => {
+    if (activeConversation) loadConversationConfig(activeConversation);
+  }, [activeConversation, loadConversationConfig]);
+
   // Add resize functionality between chat and config panels
   useEffect(() => {
     const chatPanel = document.querySelector('div.flex.flex-col.flex-grow.h-full.w-1\\/2.relative');
@@ -267,6 +291,48 @@ export default function ChatPage() {
 
   console.log("Render - messages:", messages)
   if (error) console.error("Render - error:", error)
+
+  const applyConfiguration = async () => {
+    if (!activeConversation) {
+      alert("Please select or create a conversation first.");
+      return;
+    }
+
+    try {
+      const temp = Math.min(2, Math.max(0, parseFloat(String(temperature))));
+      console.log("Sending configuration:", {
+        conversation_id: activeConversation,
+        model_name: modelName,
+        system_directive: systemDirective || null,
+        temperature: temp,
+      });
+      
+      const response = await fetch("/api/conversations/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          conversation_id: activeConversation,
+          model_name: modelName,
+          system_directive: systemDirective || null,
+          temperature: temp,
+        })
+      });
+
+      if (response.ok) {
+        setConfigChanged(false);
+        await loadConversationConfig(activeConversation);
+      } else {
+        const errorText = await response.text();
+        console.error("Failed to save configuration, status:", response.status, errorText);
+        alert("Failed to save configuration: " + errorText);
+      }
+    } catch (err: any) {
+      console.error("Error saving configuration:", err);
+      alert("Error saving configuration: " + (err.message || String(err)));
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -367,10 +433,22 @@ export default function ChatPage() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Model Selection</h3>
-                  <select className="w-full p-2 border rounded bg-background">
-                    <option>GPT-4</option>
-                    <option>GPT-3.5 Turbo</option>
-                    <option>Claude 3</option>
+                  <select 
+                    className="w-full p-2 border rounded bg-background"
+                    value={modelName}
+                    onChange={(e) => {
+                      setModelName(e.target.value);
+                      setConfigChanged(true);
+                    }}
+                  >
+                    <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
+                    <option value="anthropic/claude-3.7-sonnet">Claude 3.7 Sonnet</option>
+                    <option value="openai/gpt-4.1-nano">GPT-4.1 Nano</option>
+                    <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
+                    <option value="openai/gpt-4.1">GPT-4.1</option>
+                    <option value="x-ai/grok-3-mini-beta">Grok 3 Mini Beta</option>
+                    <option value="google/gemma-3-12b-it:free">Gemma 3 12B</option>
+                    <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
                   </select>
                 </div>
                 
@@ -379,12 +457,28 @@ export default function ChatPage() {
                   <textarea 
                     className="w-full h-40 p-2 border rounded bg-background resize-none" 
                     placeholder="Enter system instructions for the AI..."
+                    value={systemDirective}
+                    onChange={(e) => {
+                      setSystemDirective(e.target.value);
+                      setConfigChanged(true);
+                    }}
                   ></textarea>
                 </div>
                 
                 <div>
                   <h3 className="text-sm font-medium mb-2">Temperature</h3>
-                  <input type="range" min="0" max="1" step="0.1" defaultValue="0.7" className="w-full" />
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="2" 
+                    step="0.1" 
+                    value={temperature}
+                    onChange={(e) => {
+                      setTemperature(parseFloat(e.target.value));
+                      setConfigChanged(true);
+                    }}
+                    className="w-full" 
+                  />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
                     <span>Precise</span>
                     <span>Balanced</span>
@@ -392,7 +486,13 @@ export default function ChatPage() {
                   </div>
                 </div>
                 
-                <Button className="w-full">Apply Configuration</Button>
+                <Button 
+                  className="w-full" 
+                  onClick={applyConfiguration}
+                  disabled={!configChanged || !activeConversation}
+                >
+                  Apply Configuration
+                </Button>
               </div>
             </div>
           </div>

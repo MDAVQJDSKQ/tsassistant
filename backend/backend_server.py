@@ -2,9 +2,11 @@
 
 # backend_server.py
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import uvicorn
 from typing import List, Dict # Added for response models
+import os
+import json
 
 # --- Add CORS Middleware ---
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,10 +44,74 @@ except ImportError:
 memory_cache: dict[str, ConversationBufferWindowMemory] = {}
 # --------------------
 
+# === Conversation-level configuration =========================
+VALID_MODELS = {
+    "anthropic/claude-3.5-haiku",
+    "anthropic/claude-3.7-sonnet",
+    "anthropic/claude-3-opus",
+    "openai/gpt-4",
+    "openai/gpt-3.5-turbo",
+    "openai/gpt-4.1-nano",
+    "openai/gpt-4.1-mini",
+    "openai/gpt-4.1",
+    "x-ai/grok-3-mini-beta",
+    "google/gemma-3-12b-it:free",
+    "google/gemini-2.5-flash-preview",
+}
+DEFAULT_SYSTEM_PATHS = [
+    "backend/prompts/system_prompt.txt",
+    "prompts/system_prompt.txt",
+]
+TEMP_MIN, TEMP_MAX = 0.0, 2.0
+
+def _clamp_temperature(t: float | None) -> float:
+    if t is None:
+        from backend.config import config
+        return config.temperature
+    return max(TEMP_MIN, min(TEMP_MAX, t))
+# ==============================================================
+
 # Define the structure of the data we expect from the UI
 class ChatRequest(BaseModel):
-    messages: list[dict] # Expect list of {"role": "user"|"assistant", "content": "..."}
-    conversation_id: str # ID for the specific chat session
+    messages: list[dict]
+    conversation_id: str
+    model_name: str | None = None
+    system_directive: str | None = None
+    temperature: float | None = None
+
+    @field_validator("model_name")
+    @classmethod
+    def check_model(cls, v):
+        if v is not None and v not in VALID_MODELS:
+            raise ValueError(f"Unsupported model: {v}")
+        return v
+
+    @field_validator("temperature")
+    @classmethod
+    def check_temp(cls, v):
+        if v is not None and not (TEMP_MIN <= v <= TEMP_MAX):
+            raise ValueError(f"Temperature must be {TEMP_MIN}-{TEMP_MAX}")
+        return v
+
+class ConversationConfig(BaseModel):
+    conversation_id: str
+    model_name: str | None = None
+    system_directive: str | None = None
+    temperature: float | None = None
+
+    @field_validator("model_name")
+    @classmethod
+    def check_model(cls, v):
+        if v is not None and v not in VALID_MODELS:
+            raise ValueError(f"Unsupported model: {v}")
+        return v
+
+    @field_validator("temperature")
+    @classmethod
+    def check_temp(cls, v):
+        if v is not None and not (TEMP_MIN <= v <= TEMP_MAX):
+            raise ValueError(f"Temperature must be {TEMP_MIN}-{TEMP_MAX}")
+        return v
 
 class NewConversationResponse(BaseModel):
     conversation_id: str
@@ -69,6 +135,18 @@ app.add_middleware(
 )
 # ---------------------
 
+def load_conversation_config(conversation_id: str) -> dict:
+    cfg_path = os.path.join("conversations", conversation_id, "config.json")
+    if os.path.exists(cfg_path):
+        with open(cfg_path, "r") as f:
+            return json.load(f)
+    from backend.config import config
+    return {
+        "model_name": config.model_name,
+        "system_directive": None,
+        "temperature": config.temperature,
+    }
+
 @app.post("/api/chat")
 async def handle_chat(request: ChatRequest):
     """
@@ -77,6 +155,20 @@ async def handle_chat(request: ChatRequest):
     print(f"Received request for conversation_id: {request.conversation_id}")
     conversation_id = request.conversation_id
     incoming_messages = request.messages
+
+    # ---- merge global → stored → request -----------------
+    stored_cfg = load_conversation_config(conversation_id)
+    current_model       = request.model_name       or stored_cfg["model_name"]
+    current_temperature = _clamp_temperature(
+        request.temperature if request.temperature is not None
+        else stored_cfg["temperature"]
+    )
+    custom_directive    = (
+        request.system_directive
+        if request.system_directive is not None
+        else stored_cfg.get("system_directive")
+    )
+    # -------------------------------------------------------
 
     # --- 1. Get/Create Conversation Memory ---
     if conversation_id not in memory_cache:
@@ -112,28 +204,26 @@ async def handle_chat(request: ChatRequest):
 
     # --- 3. Instantiate LangChain components (can be reused) ---
     llm = ChatOpenAI(
-        model_name=config.model_name,
+        model_name=current_model,
         openai_api_key=config.openrouter_api_key,
         openai_api_base=config.openrouter_api_base,
-        temperature=config.temperature,
+        temperature=current_temperature,
     )
 
     try:
-        possible_paths = [
-            "backend/prompts/system_prompt.txt",
-            "prompts/system_prompt.txt",
-        ]
-        system_message = None
-        for path in possible_paths:
-            try:
-                with open(path, "r", encoding="utf-8") as file:
-                    system_message = file.read()
-                    print(f"Successfully loaded system prompt from {path}")
-                    break
-            except FileNotFoundError:
-                continue
-        if system_message is None:
-            raise FileNotFoundError("Could not find system prompt file in any expected location")
+        if custom_directive:
+            system_message = custom_directive
+        else:
+            system_message = None
+            for p in DEFAULT_SYSTEM_PATHS:
+                try:
+                    with open(p, "r", encoding="utf-8") as fh:
+                        system_message = fh.read()
+                        break
+                except FileNotFoundError:
+                    continue
+            if system_message is None:
+                raise HTTPException(500, "System prompt file missing")
     except FileNotFoundError as e:
          raise HTTPException(status_code=500, detail=f"System prompt file not found: {e}")
 
@@ -256,6 +346,27 @@ async def get_conversation_messages_endpoint(conversation_id: str):
     except Exception as e:
         print(f"API Error: Error getting conversation messages: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get conversation messages: {e}")
+
+@app.post("/api/conversations/config")
+async def save_conversation_config(cfg: ConversationConfig):
+    try:
+        cfg.temperature = _clamp_temperature(cfg.temperature)
+        cfg_dir = os.path.join("conversations", cfg.conversation_id)
+        os.makedirs(cfg_dir, exist_ok=True)
+        with open(os.path.join(cfg_dir, "config.json"), "w") as f:
+            json.dump(cfg.dict(), f, indent=2)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save configuration: {e}")
+
+@app.get("/api/conversations/{conversation_id}/config")
+async def get_conversation_config(conversation_id: str):
+    try:
+        data = load_conversation_config(conversation_id)
+        data["conversation_id"] = conversation_id
+        return data              # always 200
+    except Exception as e:
+        raise HTTPException(500, f"Failed to load configuration: {e}")
 
 # --- Add logic to run the server if this script is executed directly ---
 if __name__ == "__main__":
