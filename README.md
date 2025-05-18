@@ -1,140 +1,114 @@
-# Chatbot Framework
+# Multi-Agent Chat Interface
 
 ## Overview
-
-The Chatbot Framework is a full-stack application that provides a user-friendly interface for conversational AI interactions. It consists of a React/Next.js frontend and a Python (FastAPI) backend that integrates with language model APIs. The system allows users to create and manage multiple conversations with customizable parameters such as model selection, temperature settings, and system directives.
+Multi-Agent Chat Interface is a versatile chatbot application that allows users to interact with various AI models through a modern web interface. The application features conversation management, customizable system prompts, model selection, and conversation history tracking. Users can create, save, retrieve, and customize multiple conversations with different AI personas and settings.
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js (for frontend)
 - Python 3.8+ (for backend)
 - OpenRouter API key
 
-### Installation
-
-1. **Clone the repository**
-
+### Backend Setup
+1. Clone the repository to your local machine
+2. Create a virtual environment and activate it:
    ```bash
-   git clone <repository-url>
-   cd chatbot-framework
-   ```
-
-2. **Set up the backend**
-
-   ```bash
-   cd backend
-   
-   # Create a virtual environment
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   
-   # Install dependencies
-   pip install -r ../requirements.txt
-   
-   # Create a .env file with your API key
-   echo "OPENROUTER_API_KEY=your_api_key_here" > .env
    ```
-
-3. **Set up the frontend**
-
+3. Install the backend dependencies:
    ```bash
-   cd ../frontend
-   
-   # Install dependencies
+   pip install -r requirements.txt
+   ```
+4. Set up environment variables by creating a `.env` file in the root directory:
+   ```
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   ```
+5. Start the backend server:
+   ```bash
+   python -m backend.backend_server
+   ```
+   The backend will be available at http://localhost:8000
+
+### Frontend Setup
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install frontend dependencies:
+   ```bash
    npm install
-   
-   # Create a .env.local file for frontend environment variables
-   echo "BACKEND_API_URL=http://localhost:8000" > .env.local
    ```
-
-### Running the Application
-
-1. **Start the backend server**
-
-   ```bash
-   cd backend
-   python backend_server.py
+3. Create a `.env.local` file in the frontend directory:
    ```
-   
-   This will start the FastAPI server on http://localhost:8000
-
-2. **Start the frontend development server**
-
+   BACKEND_API_URL=http://localhost:8000
+   ```
+4. Start the frontend development server:
    ```bash
-   cd ../frontend
    npm run dev
    ```
-   
-   This will start the Next.js development server with Turbopack on http://localhost:3000
-
-3. **Access the application**
-   
-   Open your browser and navigate to http://localhost:3000
+   The frontend will be available at http://localhost:3000
 
 ## Tech Stack
 
 ### Backend
-- Python
-- FastAPI
-- Uvicorn
-- LangChain
-- Pydantic
+- **Python** - Core programming language
+- **FastAPI** - Web framework for building APIs
+- **LangChain** - Framework for working with language models
+- **Pydantic** - Data validation and settings management
+- **Uvicorn** - ASGI server implementation
 
 ### Frontend
-- Next.js
-- TypeScript
-- React
-- Tailwind CSS
-- Radix UI components
-- AI SDK (OpenAI integration)
+- **TypeScript** - Programming language
+- **Next.js** - React framework for web applications
+- **Tailwind CSS** - Utility-first CSS framework
+- **Radix UI** - Unstyled, accessible UI components
+- **AI SDK** - Tools for AI interactions (OpenAI integration)
 
 ## Features
 
 ### Conversation Management
 - Create new conversations with unique IDs
-- List existing conversations
-- Load conversation history
-- Save conversation state between sessions
+- List and retrieve all saved conversations
+- Delete conversations
+- Automatically generate titles for conversations based on content
 
-### Customizable AI Parameters
-- Select different language models (e.g., OpenAI GPT-4.1, Google Gemma)
-- Customize system prompts/directives
-- Adjust temperature settings for response randomness
+### Model Configuration
+- Select from multiple AI models (OpenAI, Anthropic, Google)
+- Customize system prompts to define AI behavior
+- Adjust temperature settings for response variety
+- Save model configurations per conversation
 
-### User Interface
-- Responsive design with mobile support
-- Dark mode support
-- Clean, modern UI components using shadcn/ui
+### Chat Interface
 - Real-time streaming responses
+- Persistent conversation history
+- Responsive design for mobile and desktop
+- Sidebar for quick access to saved conversations
 
-### API Integration
-- OpenRouter API integration for accessing various language models
-- Backend proxy to secure API keys
-- Structured API endpoints for conversation management
-
-### Documentation Tools
-- Automated project structure documentation
-- README generation with AI assistance
-- Cross-platform documentation update scripts
+### Settings
+- Global application settings
+- Custom title generation prompts
+- API key management
 
 ## Project Structure
 
-- `/backend/` - Python backend server and utilities
-  - `backend_server.py` - Main FastAPI server implementation
-  - `minimal_chatbot.py` - Simplified chatbot implementation
-  - `config.py` - Configuration settings
-  - `utils.py` - Helper functions for conversation management
-  - `/convos/` - Directory for storing conversation history
-  - `/prompts/` - System prompts and templates
-  - `/scripts/` - Utility scripts for documentation
+- `backend/` - Python backend server and API
+  - `backend_server.py` - Main FastAPI application
+  - `minimal_chatbot.py` - Simple chatbot implementation
+  - `config.py` - Configuration schemas
+  - `utils.py` - Helper functions
+  - `conversations/` - Stored conversation data
+  - `prompts/` - System prompt templates
+  - `scripts/` - Utility scripts for documentation
 
-- `/frontend/` - Next.js frontend application
-  - `/src/app/` - Next.js app router pages and API routes
-  - `/src/components/` - UI components
-  - `/src/hooks/` - Custom React hooks
-  - `/src/lib/` - Utility functions
+- `frontend/` - Next.js frontend application
+  - `src/app/` - Next.js pages and API routes
+  - `src/components/` - React components
+    - `Chat/` - Chat-related components
+    - `Settings/` - Settings-related components
+    - `ui/` - Reusable UI components
+  - `src/hooks/` - Custom React hooks
+  - `src/lib/` - Utility functions
 
-- `/conversations/` - Stored conversation configurations
-  - Each conversation has a unique UUID folder with configuration
+The application uses a modern API-based architecture with the backend handling the AI model interactions and conversation storage, while the frontend provides a responsive and intuitive user interface.

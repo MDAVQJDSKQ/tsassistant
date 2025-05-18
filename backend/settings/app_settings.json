@@ -1,1 +1,1 @@
-{"central_model": "claude-3.7-sonnet", "api_key": "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", "title_generation_prompt": "Summarize this conversation in 2 words"}
+{"central_model": "claude-3.7-sonnet", "api_key": "", "title_generation_prompt": "Summarize this conversation in 2 words please"}

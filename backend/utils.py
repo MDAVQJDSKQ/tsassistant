@@ -146,6 +146,9 @@ async def generate_chat_title(
     This function ALWAYS attempts to generate a new title.
     """
     print(f"[utils.generate_chat_title] Attempting to generate NEW title for {conversation_id} using model {central_model}")
+    # Log the API key and base URL details (partially)
+    api_key_display = f"{api_key[:5]}...{api_key[-4:]}" if api_key and len(api_key) > 9 else "API key too short or not set"
+    print(f"[utils.generate_chat_title] Using API Key (partial): {api_key_display}, API Base: {api_base}")
 
     try:
         messages_for_title = []

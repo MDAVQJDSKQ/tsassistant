@@ -605,7 +605,7 @@ async def generate_conversation_title_endpoint(conversation_id: str):
         app_settings_path = os.path.join("backend", "settings", "app_settings.json")
         current_central_model_for_titles = "anthropic/claude-3.5-haiku" 
         custom_user_prompt_template = None
-        user_specific_api_key = None 
+        user_specific_api_key = None # We will not use this for titles anymore to ensure .env key is used.
 
         if os.path.exists(app_settings_path):
             try:
@@ -618,17 +618,26 @@ async def generate_conversation_title_endpoint(conversation_id: str):
                 }
                 current_central_model_for_titles = model_mapping.get(raw_central_model, "anthropic/claude-3.5-haiku")
                 custom_user_prompt_template = settings_data.get("title_generation_prompt")
-                user_specific_api_key = settings_data.get("api_key") 
-                print(f"[endpoint.generate_title] Loaded app settings: model for titles='{current_central_model_for_titles}', custom_prompt exists='{custom_user_prompt_template is not None}', user_api_key exists='{user_specific_api_key is not None}'")
+                # user_specific_api_key = settings_data.get("api_key") # No longer reading this for titles
+                
+                # More precise check for API key existence in settings (for logging only, not for use)
+                log_user_api_key_in_settings = bool(settings_data.get("api_key")) 
+
+                print(f"[endpoint.generate_title] Loaded app settings: model for titles='{current_central_model_for_titles}', custom_prompt exists='{custom_user_prompt_template is not None}', user_api_key was present in settings file='{log_user_api_key_in_settings}' (but will be IGNORED for title generation).")
             except Exception as e_settings:
                 print(f"[endpoint.generate_title] Error loading app_settings.json: {e_settings}. Using defaults for title generation.")
         else:
             print("[endpoint.generate_title] app_settings.json not found. Using defaults for title generation.")
 
-        final_api_key_for_titles = user_specific_api_key or global_app_config.openrouter_api_key
+        # ALWAYS use the API key from the global application config (.env via config.py) for title generation
+        final_api_key_for_titles = global_app_config.openrouter_api_key
+        chosen_key_source = "global_app_config.py (.env)"
+            
+        print(f"[endpoint.generate_title] API key for title generation will ALWAYS be taken from: {chosen_key_source}")
+
         if not final_api_key_for_titles:
-            print("[endpoint.generate_title] CRITICAL: No API key available for title generation (checked settings & global config).")
-            raise HTTPException(status_code=500, detail="API key for title generation is not configured.")
+            print("[endpoint.generate_title] CRITICAL: No API key available for title generation from global_app_config.openrouter_api_key. Ensure it is set in your .env file.")
+            raise HTTPException(status_code=500, detail="API key for title generation is not configured in the server environment.")
 
         api_base_for_titles = global_app_config.openrouter_api_base
         if not api_base_for_titles:
