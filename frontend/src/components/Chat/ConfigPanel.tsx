@@ -29,7 +29,7 @@ export function ConfigPanel({
   isConversationActive,
 }: ConfigPanelProps) {
   return (
-    <div className="flex flex-col h-full border-l w-1/2"> {/* Adjust width as needed */}
+    <div className="flex flex-col h-full w-full"> {/* Removed border-l and w-1/2, added w-full */}
       <header className="border-b p-4">
         <h2 className="text-lg font-semibold">Configuration</h2>
       </header>

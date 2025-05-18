@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Define settings interface
 interface Settings {
-  backend_model: string;
+  central_model: string;
   api_key: string;
+  title_generation_prompt?: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -11,8 +12,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     // Validate request body
-    if (!body.backend_model) {
-      return NextResponse.json({ error: "Backend model is required" }, { status: 400 });
+    if (!body.centralModel) {
+      return NextResponse.json({ error: "Central model is required" }, { status: 400 });
     }
     
     // Proxying the settings to backend server
@@ -23,8 +24,9 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        backend_model: body.backend_model,
-        api_key: body.api_key,
+        central_model: body.centralModel,
+        api_key: body.apiKey,
+        title_generation_prompt: body.titleGenerationPrompt
       }),
     });
     

@@ -1,6 +1,7 @@
 "use client"
 
 import type { Message } from "@ai-sdk/react";
+import { useEffect, useRef } from "react";
 
 interface ChatDisplayProps {
   messages: Message[];
@@ -9,6 +10,18 @@ interface ChatDisplayProps {
 }
 
 export function ChatDisplay({ messages, isLoading }: ChatDisplayProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Scroll to bottom when messages change or loading state changes
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="max-w-3xl mx-auto space-y-4">
@@ -41,6 +54,9 @@ export function ChatDisplay({ messages, isLoading }: ChatDisplayProps) {
         )}
         {/* Optional: Add a loading indicator specifically for new messages here if desired */}
         {/* {isLoading && messages.length > 0 && <div className="text-center text-muted-foreground">Loading...</div>} */}
+        
+        {/* Invisible element to scroll to */}
+        <div ref={messagesEndRef} />
       </div>
     </main>
   );

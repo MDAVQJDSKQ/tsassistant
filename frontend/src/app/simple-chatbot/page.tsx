@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useChat, type Message } from "@ai-sdk/react"
 import { Send, Trash2 } from "lucide-react"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -29,6 +29,7 @@ interface Conversation {
   id: string
   title: string
   messages: Message[]
+  lastMessageTime?: number
 }
 
 export default function ChatPage() {
@@ -40,10 +41,12 @@ export default function ChatPage() {
   // Add settings state
   const [backendModel, setBackendModel] = useState("openrouter");
   const [apiKey, setApiKey] = useState("");
+  const [titleGenerationPrompt, setTitleGenerationPrompt] = useState<string | undefined>(undefined);
   
   // Add resize state
-  const [chatPanelWidth, setChatPanelWidth] = useState(50); // 50% initial width
+  const [chatPanelWidth, setChatPanelWidth] = useState(70); // Default to 70% initial width
   const [isResizing, setIsResizing] = useState(false);
+  const mainContentRef = useRef<HTMLDivElement>(null);
 
   const loadConversationConfig = useCallback(async (id: string) => {
     try {
@@ -69,24 +72,123 @@ export default function ChatPage() {
     if (savedSettings) {
       try {
         const settings = JSON.parse(savedSettings);
-        if (settings.backendModel) setBackendModel(settings.backendModel);
+        setBackendModel(settings.centralModel || "openrouter"); // Ensure default
         if (settings.apiKey) setApiKey(settings.apiKey);
+        if (settings.titleGenerationPrompt) setTitleGenerationPrompt(settings.titleGenerationPrompt);
       } catch (err) {
         console.error("Error loading settings from localStorage:", err);
       }
+    } else {
+      // If no saved settings, ensure defaults
+      setBackendModel("openrouter");
+      setTitleGenerationPrompt(undefined);
+    }
+  }, []);
+
+  // Add a function to automatically generate a title for a conversation
+  const generateConversationTitle = useCallback(async (conversationId: string) => {
+    if (!conversationId) return;
+    
+    try {
+      console.log(`Generating title for conversation: ${conversationId}`);
+      const response = await fetch(`/api/conversations/${conversationId}/generate-title`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to generate title: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.title) {
+        // Update the conversation title in the local state
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, title: data.title } 
+              : conv
+          )
+        );
+        console.log(`Title generated successfully: ${data.title}`);
+        return data.title;
+      }
+    } catch (error) {
+      console.error("Error generating conversation title:", error);
     }
   }, []);
 
   // Function to handle saving settings
-  const handleSaveSettings = useCallback((settings: { backendModel: string; apiKey: string }) => {
-    setBackendModel(settings.backendModel);
-    setApiKey(settings.apiKey);
+  const handleSaveSettings = useCallback((newSettings: { 
+    centralModel: string;
+    apiKey: string;
+    titleGenerationPrompt?: string;
+  }) => {
+    const oldBackendModel = backendModel;
+    const oldTitleGenPrompt = titleGenerationPrompt;
+
+    console.log("[handleSaveSettings] Received newSettings:", newSettings);
+    console.log("[handleSaveSettings] Current backendModel state:", backendModel);
+
+    const modelToSave = newSettings.centralModel || backendModel; 
+    console.log("[handleSaveSettings] Calculated modelToSave:", modelToSave);
+
+    if (!modelToSave) {
+        alert("Critical Frontend Error: Central model value is empty before sending. Please select a model. Defaulting to 'openrouter' for this save attempt.");
+        console.error("[handleSaveSettings] CRITICAL: modelToSave is empty or undefined. newSettings.centralModel:", newSettings.centralModel, "Current backendModel:", backendModel);
+        
+        // Attempt to recover by forcing a default and updating state, then sending
+        const recoveryModel = "openrouter";
+        setBackendModel(recoveryModel); 
+        setApiKey(newSettings.apiKey);
+        setTitleGenerationPrompt(newSettings.titleGenerationPrompt);
+
+        localStorage.setItem('chatSettings', JSON.stringify({
+          centralModel: recoveryModel,
+          apiKey: newSettings.apiKey,
+          titleGenerationPrompt: newSettings.titleGenerationPrompt
+        }));
+        
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            centralModel: recoveryModel, // Hardcoded default for safety
+            apiKey: newSettings.apiKey,
+            titleGenerationPrompt: newSettings.titleGenerationPrompt
+          })
+        }).then(response => {
+          if (!response.ok) {
+            return response.text().then(text => { throw new Error(`Failed to save settings (with forced recovery default): ${text}`); });
+          }
+          console.log("Settings saved successfully (with forced recovery default model).");
+        }).catch(err => {
+          console.error("Error saving settings to backend (with forced recovery default):", err);
+          alert(`Error saving settings: ${err.message}`);
+        });
+        return; // Exit after recovery attempt
+    }
     
-    // Save to localStorage
-    localStorage.setItem('chatSettings', JSON.stringify({
-      backendModel: settings.backendModel,
-      apiKey: settings.apiKey
-    }));
+    // If modelToSave is valid, proceed as normal
+    setBackendModel(modelToSave);
+    setApiKey(newSettings.apiKey);
+    setTitleGenerationPrompt(newSettings.titleGenerationPrompt);
+    
+    const settingsToStore = {
+      centralModel: modelToSave,
+      apiKey: newSettings.apiKey,
+      titleGenerationPrompt: newSettings.titleGenerationPrompt
+    };
+    localStorage.setItem('chatSettings', JSON.stringify(settingsToStore));
+
+    console.log("[handleSaveSettings] Sending to /api/settings with body:", {
+        centralModel: modelToSave,
+        apiKey: newSettings.apiKey,
+        titleGenerationPrompt: newSettings.titleGenerationPrompt
+    });
 
     // Send to backend
     fetch('/api/settings', {
@@ -95,21 +197,44 @@ export default function ChatPage() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        backend_model: settings.backendModel,
-        api_key: settings.apiKey
+        centralModel: modelToSave,
+        apiKey: newSettings.apiKey,
+        titleGenerationPrompt: newSettings.titleGenerationPrompt
       })
-    }).then(response => {
+    }).then(async response => {
       if (!response.ok) {
         return response.text().then(text => {
           throw new Error(`Failed to save settings: ${text}`);
         });
       }
       console.log("Settings saved successfully");
+
+      console.log("[handleSaveSettings] Checking for title regeneration conditions...");
+      console.log("[handleSaveSettings] Old backendModel:", oldBackendModel, "New modelToSave:", modelToSave);
+      console.log("[handleSaveSettings] Old titleGenerationPrompt:", oldTitleGenPrompt, "New newSettings.titleGenerationPrompt:", newSettings.titleGenerationPrompt);
+
+      const modelChanged = oldBackendModel !== modelToSave;
+      const promptChanged = oldTitleGenPrompt !== newSettings.titleGenerationPrompt;
+
+      console.log("[handleSaveSettings] modelChanged:", modelChanged, "promptChanged:", promptChanged);
+
+      if (modelChanged || promptChanged) {
+        console.log("[handleSaveSettings] Relevant settings changed. Regenerating all conversation titles.");
+        const currentConversations = [...conversations]; // Use a stable copy
+        for (const conv of currentConversations) {
+          if (conv.id) { // Regenerate for any conversation with an ID
+            console.log(`[handleSaveSettings] Requesting title regeneration for conversation: ${conv.id}`);
+            await generateConversationTitle(conv.id);
+          }
+        }
+        console.log("[handleSaveSettings] Finished regenerating titles.");
+      }
+
     }).catch(err => {
       console.error("Error saving settings to backend:", err);
       alert(`Error saving settings: ${err.message}`);
     });
-  }, []);
+  }, [backendModel, apiKey, titleGenerationPrompt, conversations, generateConversationTitle, setBackendModel, setApiKey, setTitleGenerationPrompt]);
 
   const getConversationTitle = useCallback((msgs: Message[], conversationId: string): string => {
     // Check if this is an existing conversation with no messages (just show the ID)
@@ -161,7 +286,24 @@ export default function ChatPage() {
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === activeConversation
-            ? { ...conv, messages: newMessages, title: getConversationTitle(newMessages, conv.id) }
+            ? (() => {
+                const currentTitle = conv.title;
+                // Default placeholders are "New Conversation" or a title derived from the conversation ID (first 8 chars).
+                // Also consider an empty or null title as a placeholder.
+                const isDefaultPlaceholder =
+                  !currentTitle ||
+                  currentTitle === "New Conversation" ||
+                  currentTitle === conv.id.substring(0, 8);
+
+                let newTitle = currentTitle;
+                if (isDefaultPlaceholder) {
+                  // If the current title is a placeholder, generate a new one based on messages.
+                  // If newMessages is empty, getConversationTitle will provide a suitable default (e.g., UUID prefix).
+                  newTitle = getConversationTitle(newMessages, conv.id);
+                }
+                // Otherwise, retain the existing (potentially AI-generated or user-set) title.
+                return { ...conv, messages: newMessages, title: newTitle };
+              })()
             : conv,
         ),
       )
@@ -202,29 +344,40 @@ export default function ChatPage() {
   useEffect(() => {
     async function fetchConversations() {
       try {
+        console.log("Fetching conversations from API...");
         const response = await fetch('/api/conversations/list')
         if (response.ok) {
           const data = await response.json()
+          console.log("API Response:", data);
+          
           if (data && data.length > 0) { // Check if data exists and has items
-            // Map backend conversation format to frontend format
-            const loadedConversations = data.map((conv: { id: string; name?: string }) => ({
+            console.log("Got conversations from API:", data);
+            // Map backend conversation format to frontend format, handle all fields from backend
+            const loadedConversations = data.map((conv: { id: string; name?: string; title?: string; last_message_time?: number }) => ({
               id: conv.id,
-              title: conv.name || "Chat " + conv.id.substring(0, 8), // Changed title slightly
-              messages: [] // Messages will be loaded by useChat when conversation becomes active
+              // Prioritize title from config, then fallback to name or ID
+              title: conv.title || conv.name || "Chat " + conv.id.substring(0, 8),
+              messages: [], // Messages will be loaded by useChat when conversation becomes active
+              lastMessageTime: conv.last_message_time // Store the timestamp for potential use
             }))
+            
+            console.log("Mapped conversations:", loadedConversations);
             setConversations(loadedConversations)
             
             // Check if a conversation ID is in the URL
             const urlConversationId = searchParams.get('conv')
+            console.log("URL conversation ID:", urlConversationId);
             
             // Only load from URL if active conversation isn't already set to that ID
             if (urlConversationId && urlConversationId !== activeConversation) {
+              console.log("Loading conversation from URL:", urlConversationId);
               // If URL has a conversation ID, load that specific one
               setActiveConversation(urlConversationId)
               loadConversationMessages(urlConversationId)
             } else if (loadedConversations.length > 0 && !activeConversation) {
               // Otherwise, load the first conversation if available
               const firstConversationId = loadedConversations[0].id
+              console.log("Loading first conversation:", firstConversationId);
               setActiveConversation(firstConversationId)
               loadConversationMessages(firstConversationId)
               
@@ -235,6 +388,7 @@ export default function ChatPage() {
             }
           } else {
             // No conversations on backend, or empty list.
+            console.log("No conversations found, or empty data from API");
             // User will need to create a new one. activeConversation remains null.
             setConversations([]) // Ensure it's empty
             console.log("No conversations found on backend. User should create a new chat.")
@@ -267,7 +421,7 @@ export default function ChatPage() {
       // Prevent duplicate updates by checking if this conversation already exists
       if (!conversations.some(conv => conv.id === newId)) {
         // For new conversations with no messages, show "New Conversation" 
-        setConversations((prev) => [...prev, { id: newId, title: "New Conversation", messages: [] }])
+        setConversations((prev) => [...prev, { id: newId, title: "New Conversation", messages: [], lastMessageTime: undefined }])
       }
       
       // Only update active conversation if it's different
@@ -369,47 +523,44 @@ export default function ChatPage() {
 
   // Resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    console.log('Resize start');
+    e.preventDefault(); // Prevent text selection
     setIsResizing(true);
     document.body.style.cursor = 'col-resize';
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeEnd);
-    e.preventDefault(); // Prevent text selection
   }, []);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing) return;
+    if (!isResizing || !mainContentRef.current) return;
     
-    // Get container width
-    const containerWidth = document.querySelector('.flex.flex-1.h-full.w-full')?.getBoundingClientRect().width || 1000;
+    const containerRect = mainContentRef.current.getBoundingClientRect();
+    const relativeX = e.clientX - containerRect.left;
+    const newWidthPercent = (relativeX / containerRect.width) * 100;
     
-    // Calculate new width percentage
-    const newWidthPercent = (e.clientX / containerWidth) * 100;
-    
-    // Apply width constraints (30% - 70%)
-    if (newWidthPercent >= 30 && newWidthPercent <= 70) {
+    // Apply constraints (min 30%, max 90%)
+    if (newWidthPercent >= 30 && newWidthPercent <= 90) {
       setChatPanelWidth(newWidthPercent);
-      console.log('Resize move:', newWidthPercent);
     }
   }, [isResizing]);
 
   const handleResizeEnd = useCallback(() => {
-    console.log('Resize end');
     setIsResizing(false);
     document.body.style.cursor = '';
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeEnd);
-  }, [handleResizeMove]);
+  }, []);
 
-  // Remove the old resize useEffect
-  // Add resize functionality between chat and config panels
+  // Set up and clean up resize event listeners
   useEffect(() => {
-    // Cleanup resize event listeners on unmount
+    const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
+    const handleMouseUp = () => handleResizeEnd();
+    
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    
     return () => {
-      document.removeEventListener('mousemove', handleResizeMove);
-      document.removeEventListener('mouseup', handleResizeEnd);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [handleResizeMove, handleResizeEnd]);
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   console.log("Render - messages:", messages)
   if (error) console.error("Render - error:", error)
@@ -456,22 +607,76 @@ export default function ChatPage() {
     }
   };
 
+  // New Effect 1: Sync messages from useChat to our `conversations` state
+  useEffect(() => {
+    // This function ensures that the messages from useChat (for the active conversation)
+    // are reflected in our main `conversations` array.
+    // It also handles updating the title based on these messages if the title is a placeholder
+    // (The title logic inside updateConversationMessages was made smarter by a previous fix)
+    if (activeConversation) { // Only update if there's an active conversation context
+      updateConversationMessages(messages);
+    }
+  }, [messages, updateConversationMessages, activeConversation]); // updateConversationMessages depends on activeConversation & getConversationTitle
+
+  // New Effect 2: AI-driven Title Generation (if placeholder title exists after messages update)
+  useEffect(() => {
+    if (activeConversation && messages.length >= 3) {
+      const conversation = conversations.find(c => c.id === activeConversation);
+      if (conversation) {
+        const { title: currentTitle, id: conversationId } = conversation;
+        
+        // Check if the current title is a placeholder (e.g., "New Conversation" or UUID-based)
+        const isDefaultPlaceholderTitle = currentTitle === "New Conversation" || currentTitle === conversationId.substring(0, 8);
+
+        if (isDefaultPlaceholderTitle) {
+          console.log(`Conversation ${conversationId} has a default placeholder title '${currentTitle}'. Attempting to generate a better one.`);
+          
+          fetch(`/api/conversations/${activeConversation}/config`)
+            .then(response => response.json())
+            .then(data => {
+              const configTitle = data.title;
+              const configTitleIsEffectivelyPlaceholder = !configTitle || 
+                                                        configTitle === "New Conversation" || 
+                                                        configTitle.startsWith("Chat ") || 
+                                                        configTitle === conversationId.substring(0,8);
+
+              if (configTitleIsEffectivelyPlaceholder) {
+                console.log(`Config title for ${conversationId} is also placeholder ('${configTitle}'). Generating new title with AI.`);
+                generateConversationTitle(activeConversation); // AI generation
+              } else if (configTitle && configTitle !== currentTitle) {
+                console.log(`Using config title '${configTitle}' for conversation ${conversationId} (current was '${currentTitle}').`);
+                setConversations(prev => 
+                  prev.map(conv => 
+                    conv.id === activeConversation ? { ...conv, title: configTitle } : conv
+                  )
+                );
+              }
+            })
+            .catch(error => {
+              console.error(`Error fetching config for title generation (convId: ${activeConversation}). Falling back to AI generation.`, error);
+              generateConversationTitle(activeConversation);
+            });
+        }
+      }
+    }
+  }, [activeConversation, messages, conversations, generateConversationTitle, setConversations, getConversationTitle]); // getConversationTitle for completeness if used in deeper checks not shown, setConversations for direct use
+
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen bg-background overflow-hidden">
+      <div className="flex h-screen w-full max-w-full bg-background overflow-hidden">
         <ConversationSidebar
           conversations={conversations}
           activeConversation={activeConversation}
           onSelectConversation={handleSelectConversation}
           onCreateNewConversation={createNewConversation}
           onDeleteConversation={handleDeleteConversation}
+          onSaveSettings={handleSaveSettings}
         />
 
-        {/* Main container */}
-        <div className="flex flex-1 h-full w-full">
+        {/* Main container - using ref instead of id */}
+        <div ref={mainContentRef} className="flex flex-1 h-full overflow-hidden max-w-full">
           {/* Chat area wrapper */}
           <div 
-            id="chat-panel" 
             className="flex flex-col h-full relative"
             style={{ width: `${chatPanelWidth}%` }}
           >
@@ -480,9 +685,6 @@ export default function ChatPage() {
                 <SidebarTrigger className="mr-2 md:hidden" />
                 <h1 className="text-xl font-bold">{conversations.find((c) => c.id === activeConversation)?.title || "Chat"}</h1>
               </div>
-              
-              {/* Add settings menu */}
-              <SettingsMenu onSaveSettings={handleSaveSettings} />
             </header>
 
             <ChatDisplay messages={messages} isLoading={isLoading} />
@@ -495,17 +697,16 @@ export default function ChatPage() {
               isConversationActive={!!activeConversation}
             />
             
-            {/* Resize handle - wider and with direct event handler */}
+            {/* Resize handle - with improved styling for better usability */}
             <div 
-              className="absolute right-0 top-0 bottom-0 w-6 bg-border/30 cursor-col-resize hover:bg-primary/60 transition-colors duration-200 z-50"
-              id="resize-handle"
-              style={{ transform: 'translateX(3px)' }}
+              className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 z-50 flex items-center justify-center"
               onMouseDown={handleResizeStart}
-            ></div>
+            >
+              <div className="h-12 w-[3px] bg-border rounded-full"></div>
+            </div>
           </div>
 
           <div 
-            id="config-panel" 
             className="flex flex-col h-full border-l"
             style={{ width: `${100 - chatPanelWidth}%` }}
           >

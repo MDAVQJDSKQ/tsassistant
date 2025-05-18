@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-import { PlusCircle, Trash2 } from "lucide-react"
+import { PlusCircle, Trash2, Home } from "lucide-react"
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import {
   Sidebar,
@@ -13,6 +14,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar" // Assuming this path is correct
 import type { Message } from "@ai-sdk/react"; // Added for Conversation interface
+import { SettingsMenu } from "@/components/Settings/SettingsMenu"
 
 // Re-defining Conversation interface locally for the component,
 // or ideally, this would be imported from a shared types file.
@@ -20,6 +22,7 @@ export interface Conversation {
   id: string;
   title: string;
   messages: Message[]; // Assuming Message type is available or defined
+  lastMessageTime?: number; // Add timestamp field
 }
 
 interface ConversationSidebarProps {
@@ -28,6 +31,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onCreateNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
+  onSaveSettings: (settings: { centralModel: string; apiKey: string; titleGenerationPrompt?: string }) => void;
   currentVersion?: string; // Optional prop for version display
 }
 
@@ -37,14 +41,34 @@ export function ConversationSidebar({
   onSelectConversation,
   onCreateNewConversation,
   onDeleteConversation,
+  onSaveSettings,
   currentVersion = "v1.0" // Default version
 }: ConversationSidebarProps) {
+  const router = useRouter();
+  console.log("[ConversationSidebar] Received conversations prop:", conversations);
   return (
     <Sidebar>
+      {/* New Top Row for Home and Settings */}
+      <div className="p-3 flex items-center justify-between border-b">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/')}
+          title="Home"
+        >
+          <Home className="h-6 w-6" />
+        </Button>
+        <SettingsMenu onSaveSettings={onSaveSettings} />
+      </div>
+
+      {/* Original Header, now just for Conversations title and New button */}
       <SidebarHeader className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Conversations</h2>
+        {/* Center: Conversations title */}
+        <h2 className="text-lg font-semibold">Conversations</h2> 
+
+        {/* Right: New Conversation button */}
         <Button variant="ghost" size="icon" onClick={onCreateNewConversation} title="New Conversation">
-          <PlusCircle className="h-5 w-5" />
+          <PlusCircle className="h-6 w-6" />
         </Button>
       </SidebarHeader>
       <SidebarContent>
