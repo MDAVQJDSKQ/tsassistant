@@ -1,5 +1,10 @@
-import * as React from "react"
-import { useState, useEffect, ChangeEvent } from "react"
+'use client'
+
+import { useState } from 'react'
+import { Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Sheet,
   SheetTrigger,
@@ -8,85 +13,47 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-} from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-
-interface Settings {
-  centralModel: string;
-  apiKey: string;
-  titleGenerationPrompt?: string;
-}
+} from '@/components/ui/sheet'
+import { useSettings } from '@/hooks'
 
 export function SettingsMenu() {
-  const [settings, setSettings] = useState<Settings>({
-    centralModel: "openrouter",
-    apiKey: "",
-    titleGenerationPrompt: undefined
-  })
+  const {
+    settings,
+    apiKeyConfigured,
+    isLoading,
+    tempApiKey,
+    loadSettings,
+    saveSettings,
+    updateApiKey,
+    updateCentralModel,
+    updateTitlePrompt
+  } = useSettings()
+  
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false)
 
-  // Load settings from backend when sheet opens
-  useEffect(() => {
-    if (isOpen) {
-      setIsLoading(true)
-      fetch('/api/settings')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error("Failed to fetch settings")
-          }
-          return response.json()
-        })
-        .then(data => {
-          if (data.central_model && data.central_model !== settings.centralModel) {
-            setSettings(prev => ({ ...prev, centralModel: data.central_model }))
-          }
-          const newApiKeyConfigured = !!data.api_key_configured
-          if (newApiKeyConfigured !== apiKeyConfigured) {
-            setApiKeyConfigured(newApiKeyConfigured)
-          }
-          if (data.title_generation_prompt && data.title_generation_prompt !== settings.titleGenerationPrompt) {
-            setSettings(prev => ({ ...prev, titleGenerationPrompt: data.title_generation_prompt }))
-          }
-        })
-        .catch(err => {
-          console.error("Error fetching settings:", err)
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
-    }
-  }, [isOpen, settings.centralModel, settings.titleGenerationPrompt])
-
-  const handleSaveSettings = () => {
-    // Send to backend
-    fetch('/api/settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        centralModel: settings.centralModel,
-        apiKey: settings.apiKey,
-        titleGenerationPrompt: settings.titleGenerationPrompt
-      })
-    }).then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to save settings')
+  const handleOpenChange = async (open: boolean) => {
+    setIsOpen(open)
+    if (open) {
+      try {
+        await loadSettings()
+      } catch (error) {
+        console.error('Error loading settings:', error)
       }
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      await saveSettings()
       setIsOpen(false)
-    }).catch(err => {
-      console.error("Error saving settings:", err)
-      alert(`Error saving settings: ${err.message}`)
-    })
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      alert('Failed to save settings')
+    }
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon">
           <Settings className="h-6 w-6" />
@@ -112,8 +79,7 @@ export function SettingsMenu() {
               <select
                 id="central-model"
                 value={settings.centralModel}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => 
-                  setSettings(prev => ({ ...prev, centralModel: e.target.value }))}
+                onChange={(e) => updateCentralModel(e.target.value)}
                 className="w-full p-2 border rounded bg-background"
               >
                 <option value="claude-3.5-haiku">Claude 3.5 Haiku</option>
@@ -129,12 +95,11 @@ export function SettingsMenu() {
                 id="api-key"
                 type="password"
                 placeholder={apiKeyConfigured ? "API key is configured" : "Enter your OpenRouter API key"}
-                value={settings.apiKey}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => 
-                  setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                value={tempApiKey}
+                onChange={(e) => updateApiKey(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Your API key is stored securely in your browser and sent only to the backend.
+                Your API key is stored securely and sent only to the backend.
               </p>
             </div>
             
@@ -146,8 +111,7 @@ export function SettingsMenu() {
                 id="title-generation-prompt"
                 placeholder="Enter custom prompt for generating chat titles (leave empty for default)"
                 value={settings.titleGenerationPrompt || ''}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => 
-                  setSettings(prev => ({ ...prev, titleGenerationPrompt: e.target.value }))}
+                onChange={(e) => updateTitlePrompt(e.target.value)}
                 className="min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">
@@ -158,7 +122,7 @@ export function SettingsMenu() {
         )}
         
         <SheetFooter>
-          <Button className="w-full" onClick={handleSaveSettings} disabled={isLoading}>
+          <Button className="w-full" onClick={handleSave} disabled={isLoading}>
             Save Settings
           </Button>
         </SheetFooter>
