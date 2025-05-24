@@ -14,78 +14,76 @@ import { Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
-interface SettingsMenuProps {
-  onSaveSettings: (settings: {
-    centralModel: string;
-    apiKey: string;
-    titleGenerationPrompt?: string;
-  }) => void;
+interface Settings {
+  centralModel: string;
+  apiKey: string;
+  titleGenerationPrompt?: string;
 }
 
-export function SettingsMenu({ onSaveSettings }: SettingsMenuProps) {
-  const [centralModel, setCentralModel] = useState("claude-3.7-sonnet");
-  const [apiKey, setApiKey] = useState("");
-  const [titleGenerationPrompt, setTitleGenerationPrompt] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
-
-  // Load settings from localStorage when component mounts
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('chatSettings');
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings);
-        if (settings.centralModel) setCentralModel(settings.centralModel);
-        if (settings.apiKey) setApiKey(settings.apiKey);
-        if (settings.titleGenerationPrompt) setTitleGenerationPrompt(settings.titleGenerationPrompt);
-      } catch (err) {
-        console.error("Error loading settings from localStorage:", err);
-      }
-    }
-  }, []);
+export function SettingsMenu() {
+  const [settings, setSettings] = useState<Settings>({
+    centralModel: "openrouter",
+    apiKey: "",
+    titleGenerationPrompt: undefined
+  })
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false)
 
   // Load settings from backend when sheet opens
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(true);
+      setIsLoading(true)
       fetch('/api/settings')
         .then(response => {
           if (!response.ok) {
-            throw new Error("Failed to fetch settings");
+            throw new Error("Failed to fetch settings")
           }
-          return response.json();
+          return response.json()
         })
         .then(data => {
-          if (data.central_model && data.central_model !== centralModel) {
-            setCentralModel(data.central_model);
+          if (data.central_model && data.central_model !== settings.centralModel) {
+            setSettings(prev => ({ ...prev, centralModel: data.central_model }))
           }
-          const newApiKeyConfigured = !!data.api_key_configured;
+          const newApiKeyConfigured = !!data.api_key_configured
           if (newApiKeyConfigured !== apiKeyConfigured) {
-            setApiKeyConfigured(newApiKeyConfigured);
+            setApiKeyConfigured(newApiKeyConfigured)
           }
-          if (data.title_generation_prompt && data.title_generation_prompt !== titleGenerationPrompt) {
-            setTitleGenerationPrompt(data.title_generation_prompt);
+          if (data.title_generation_prompt && data.title_generation_prompt !== settings.titleGenerationPrompt) {
+            setSettings(prev => ({ ...prev, titleGenerationPrompt: data.title_generation_prompt }))
           }
         })
         .catch(err => {
-          console.error("Error fetching settings:", err);
-          // Optionally, reset states or show an error message in the UI
+          console.error("Error fetching settings:", err)
         })
         .finally(() => {
-          setIsLoading(false);
-        });
+          setIsLoading(false)
+        })
     }
-  }, [isOpen]); // Reverted dependencies to just [isOpen]
+  }, [isOpen, settings.centralModel, settings.titleGenerationPrompt])
 
   const handleSaveSettings = () => {
-    onSaveSettings({
-      centralModel,
-      apiKey,
-      titleGenerationPrompt
-    });
-    setIsOpen(false);
-  };
+    // Send to backend
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        centralModel: settings.centralModel,
+        apiKey: settings.apiKey,
+        titleGenerationPrompt: settings.titleGenerationPrompt
+      })
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to save settings')
+      }
+      setIsOpen(false)
+    }).catch(err => {
+      console.error("Error saving settings:", err)
+      alert(`Error saving settings: ${err.message}`)
+    })
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -113,8 +111,9 @@ export function SettingsMenu({ onSaveSettings }: SettingsMenuProps) {
               </label>
               <select
                 id="central-model"
-                value={centralModel}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setCentralModel(e.target.value)}
+                value={settings.centralModel}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => 
+                  setSettings(prev => ({ ...prev, centralModel: e.target.value }))}
                 className="w-full p-2 border rounded bg-background"
               >
                 <option value="claude-3.5-haiku">Claude 3.5 Haiku</option>
@@ -130,8 +129,9 @@ export function SettingsMenu({ onSaveSettings }: SettingsMenuProps) {
                 id="api-key"
                 type="password"
                 placeholder={apiKeyConfigured ? "API key is configured" : "Enter your OpenRouter API key"}
-                value={apiKey}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setApiKey(e.target.value)}
+                value={settings.apiKey}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => 
+                  setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
               />
               <p className="text-xs text-muted-foreground">
                 Your API key is stored securely in your browser and sent only to the backend.
@@ -145,8 +145,9 @@ export function SettingsMenu({ onSaveSettings }: SettingsMenuProps) {
               <Textarea
                 id="title-generation-prompt"
                 placeholder="Enter custom prompt for generating chat titles (leave empty for default)"
-                value={titleGenerationPrompt}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTitleGenerationPrompt(e.target.value)}
+                value={settings.titleGenerationPrompt || ''}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => 
+                  setSettings(prev => ({ ...prev, titleGenerationPrompt: e.target.value }))}
                 className="min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">

@@ -12,17 +12,15 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-} from "@/components/ui/sidebar" // Assuming this path is correct
-import type { Message } from "@ai-sdk/react"; // Added for Conversation interface
+} from "@/components/ui/sidebar"
+import type { Message } from "@ai-sdk/react"
 import { SettingsMenu } from "@/components/Settings/SettingsMenu"
 
-// Re-defining Conversation interface locally for the component,
-// or ideally, this would be imported from a shared types file.
 export interface Conversation {
   id: string;
   title: string;
-  messages: Message[]; // Assuming Message type is available or defined
-  lastMessageTime?: number; // Add timestamp field
+  messages: Message[];
+  lastMessageTime?: number;
 }
 
 interface ConversationSidebarProps {
@@ -31,8 +29,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onCreateNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
-  onSaveSettings: (settings: { centralModel: string; apiKey: string; titleGenerationPrompt?: string }) => void;
-  currentVersion?: string; // Optional prop for version display
+  currentVersion?: string;
 }
 
 export function ConversationSidebar({
@@ -41,8 +38,7 @@ export function ConversationSidebar({
   onSelectConversation,
   onCreateNewConversation,
   onDeleteConversation,
-  onSaveSettings,
-  currentVersion = "v1.0" // Default version
+  currentVersion = "v1.0"
 }: ConversationSidebarProps) {
   const router = useRouter();
   console.log("[ConversationSidebar] Received conversations prop:", conversations);
@@ -58,7 +54,7 @@ export function ConversationSidebar({
         >
           <Home className="h-6 w-6" />
         </Button>
-        <SettingsMenu onSaveSettings={onSaveSettings} />
+        <SettingsMenu />
       </div>
 
       {/* Original Header, now just for Conversations title and New button */}
