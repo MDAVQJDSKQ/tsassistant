@@ -135,9 +135,13 @@ def format_ascii_in_box(ascii_art: str, description: str, width: int, height: in
     while lines and not lines[-1].strip():
         lines.pop()
     
-    # Ensure we don't exceed height limit
-    if len(lines) > height - 4:  # Reserve space for box borders and title
-        lines = lines[:height - 4]
+    # Ensure we don't exceed height limit (adjust height calculation if title area removed)
+    # The original `height - 4` reserved space for top/bottom borders and title+separator.
+    # If title and its separator are gone, we might have 2 more lines for content, 
+    # or we keep the original height logic for simplicity if the box itself should be smaller. 
+    # Let's adjust the height limit for content slightly. Max content lines = height - 2 (for top/bottom border)
+    if len(lines) > height - 2: 
+        lines = lines[:height - 2]
     
     # Ensure we don't exceed width limit
     max_content_width = width - 4  # Reserve space for box borders
@@ -159,11 +163,8 @@ def format_ascii_in_box(ascii_art: str, description: str, width: int, height: in
     # Build the formatted output
     result_lines = []
     
-    # Top border with title
+    # Top border (without title section)
     result_lines.append("┌" + "─" * (box_width - 2) + "┐")
-    title_line = f"│ {title:<{box_width - 4}} │"
-    result_lines.append(title_line)
-    result_lines.append("├" + "─" * (box_width - 2) + "┤")
     
     # ASCII art content
     for line in cleaned_lines:

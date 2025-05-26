@@ -1,6 +1,9 @@
 {
   "id": "ascii-default-1748266651",
   "title": "ASCII Chat",
+  "model_name": "anthropic/claude-sonnet-4",
+  "system_directive": "You are a helpful AI assistant. Respond to user questions and requests with accurate, helpful information. Be concise and clear in your responses.",
+  "temperature": 0.7,
   "created_time": 1748266651.9558735,
-  "last_message_time": 1748266651.9558735
+  "last_message_time": 1748275018.9007308
 }

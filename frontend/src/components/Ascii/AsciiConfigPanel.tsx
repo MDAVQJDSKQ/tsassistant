@@ -1,6 +1,6 @@
 'use client'
 
-import { useAtom } from 'jotai'
+import { useAtom, useSetAtom } from 'jotai'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ModelSelection } from '@/components/ui/model-selection'
@@ -9,15 +9,22 @@ import {
   asciiConfigChangedAtom,
   canSendAsciiMessageAtom,
   asciiMessagesAtom,
-  activeAsciiConversationIdAtom
+  activeAsciiConversationIdAtom,
+  saveAsciiConfigurationAtom
 } from '@/atoms'
 
-export function AsciiConfigPanel() {
+export interface AsciiConfigPanelProps {
+  onGenerateClick: () => void;
+}
+
+export function AsciiConfigPanel({ onGenerateClick }: AsciiConfigPanelProps) {
   const [config, setConfig] = useAtom(asciiConfigAtom)
   const [configChanged, setConfigChanged] = useAtom(asciiConfigChangedAtom)
   const [canSendMessage] = useAtom(canSendAsciiMessageAtom)
   const [messages] = useAtom(asciiMessagesAtom)
   const [activeConversationId] = useAtom(activeAsciiConversationIdAtom)
+  const saveConfiguration = useSetAtom(saveAsciiConfigurationAtom)
+  const [saving, setSaving] = useState(false)
 
   const handleConfigChange = <T extends keyof typeof config>(
     key: T, 
@@ -27,15 +34,19 @@ export function AsciiConfigPanel() {
     setConfigChanged(true)
   }
 
-  const handleSave = () => {
-    // Save configuration logic will be implemented later
-    setConfigChanged(false)
-    console.log('ASCII configuration saved:', config)
-  }
-
-  const handleGenerateAscii = async () => {
-    // Instead of generating ASCII art here, we'll guide the user to use the chat
-    alert('To generate ASCII art from conversation context, type a message like "Generate ASCII art based on our conversation" in the chat below. The AI will automatically use the ASCII art tool with your configured dimensions.')
+  const handleSave = async () => {
+    if (!activeConversationId || !configChanged) return
+    
+    setSaving(true)
+    try {
+      await saveConfiguration()
+      console.log('ASCII configuration saved successfully')
+    } catch (error) {
+      console.error('Failed to save ASCII configuration:', error)
+      alert('Failed to save configuration. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -97,9 +108,9 @@ export function AsciiConfigPanel() {
           <Button
             className="w-full"
             onClick={handleSave}
-            disabled={!configChanged || !canSendMessage}
+            disabled={!configChanged || !canSendMessage || saving}
           >
-            Apply Configuration
+            {saving ? 'Saving...' : 'Apply Configuration'}
           </Button>
 
           {/* ASCII Tool Section */}
@@ -163,22 +174,13 @@ export function AsciiConfigPanel() {
                 </p>
               </div>
 
-              {/* Context Info */}
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-sm text-blue-800">
-                  <strong>Context-Aware Generation:</strong> The tool will analyze your current conversation 
-                  {messages.length > 0 ? ` (${messages.length} messages)` : ''} and generate ASCII art 
-                  that represents the main topics or concepts being discussed.
-                </p>
-              </div>
-
               {/* Generate Button */}
               <Button
                 className="w-full"
-                onClick={handleGenerateAscii}
+                onClick={onGenerateClick}
                 disabled={!canSendMessage}
               >
-                How to Generate ASCII Art
+                Generate ASCII Art
               </Button>
             </div>
           </div>

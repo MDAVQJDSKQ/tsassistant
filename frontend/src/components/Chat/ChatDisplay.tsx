@@ -2,6 +2,38 @@
 
 import type { Message } from "@ai-sdk/react";
 import { useEffect, useRef } from "react";
+import React from "react";
+
+// Helper function to format message content
+const formatMessageContent = (content: string) => {
+  const lines = content.split('\\n');
+  return lines.map((line, index) => {
+    let formattedLine: React.ReactNode | string = line;
+
+    // Handle headings (e.g., # Heading)
+    if (line.startsWith("# ")) {
+      formattedLine = <h1 key={`h1-${index}`} className="text-2xl font-bold mt-2 mb-1">{line.substring(2)}</h1>;
+    } else if (line.startsWith("## ")) {
+      formattedLine = <h2 key={`h2-${index}`} className="text-xl font-semibold mt-1 mb-0.5">{line.substring(3)}</h2>;
+    } else if (line.startsWith("### ")) {
+      formattedLine = <h3 key={`h3-${index}`} className="text-lg font-medium">{line.substring(4)}</h3>;
+    } else {
+      // Handle bold text (e.g., **bold text**)
+      const parts = line.split(/(\*\*[^\*]+\*\*)/g);
+      formattedLine = <>{parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={`strong-${index}-${i}`}>{part.substring(2, part.length - 2)}</strong>;
+        }
+        return part;
+      })}</>;
+    }
+
+    if (index < lines.length - 1) {
+      return <React.Fragment key={index}>{formattedLine}<br /></React.Fragment>;
+    }
+    return <React.Fragment key={index}>{formattedLine}</React.Fragment>;
+  });
+};
 
 interface ChatDisplayProps {
   messages: Message[];
@@ -47,7 +79,7 @@ export function ChatDisplay({ messages, isLoading }: ChatDisplayProps) {
                     : "bg-muted"
                 }`}
               >
-                <div className="message-content-display">{message.content}</div>
+                <div className="message-content-display">{formatMessageContent(message.content)}</div>
               </div>
             </div>
           ))

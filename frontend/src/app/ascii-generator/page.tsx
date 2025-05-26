@@ -34,6 +34,25 @@ export default function AsciiGeneratorPage() {
 
   const asciiChat = useAsciiChat()
 
+  const triggerAsciiGeneration = () => {
+    if (asciiChat.canSendMessage) {
+      const messageContent = "Generate ASCII art using the current conversation context and the configured tool dimensions."
+      // The tool_width and tool_height are already part of the body sent by useAsciiChat
+      // based on the current config.
+      // We add 'tool_choice' in data as an explicit hint for the backend.
+      asciiChat.append({
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: messageContent,
+        data: { 
+          tool_choice: 'ascii_art_generator_tool' 
+        }
+      })
+    } else {
+      console.warn("Cannot trigger ASCII generation: No active conversation or cannot send message.")
+    }
+  }
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full max-w-full bg-background overflow-hidden">
@@ -57,7 +76,7 @@ export default function AsciiGeneratorPage() {
             isLoading={asciiChat.isLoading}
             isConversationActive={asciiChat.canSendMessage}
           />
-          <AsciiConfigPanel />
+          <AsciiConfigPanel onGenerateClick={triggerAsciiGeneration} />
         </ResizableLayout>
       </div>
     </SidebarProvider>

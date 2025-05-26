@@ -3,6 +3,8 @@ import {
   asciiConversationsAtom, 
   activeAsciiConversationIdAtom, 
   asciiMessagesAtom,
+  asciiConfigAtom,
+  asciiConfigChangedAtom,
   type AsciiConversation 
 } from './asciiAtoms'
 import { loadingStatesAtom, errorStatesAtom } from './uiAtoms'
@@ -95,6 +97,9 @@ export const loadAsciiMessagesAtom = atom(
       }))
       
       set(asciiMessagesAtom, formattedMessages)
+      
+      // Load ASCII conversation configuration
+      set(loadAsciiConversationConfigAtom, conversationId)
     } catch (error) {
       console.error('Error loading ASCII messages:', error)
       set(asciiMessagesAtom, [])
@@ -104,6 +109,49 @@ export const loadAsciiMessagesAtom = atom(
       }))
     } finally {
       set(loadingStatesAtom, prev => ({ ...prev, messages: false }))
+    }
+  }
+)
+
+// Load ASCII conversation configuration
+export const loadAsciiConversationConfigAtom = atom(
+  null,
+  async (get, set, conversationId: string) => {
+    try {
+      const response = await fetch(`/api/ascii-conversations/${conversationId}/config`)
+      if (!response.ok) return // Config might not exist yet
+      
+      const data = await response.json()
+      set(asciiConfigAtom, {
+        // Chat configuration
+        modelName: data.model_name || 'anthropic/claude-3.5-haiku',
+        systemDirective: data.system_directive || `You are a helpful AI assistant. Respond to user questions and requests with accurate, helpful information. Be concise and clear in your responses.`,
+        temperature: data.temperature ?? 0.7,
+        // ASCII-specific configuration
+        style: data.style || 'standard',
+        width: data.width || 80,
+        includeInstructions: data.include_instructions ?? true,
+        outputFormat: data.output_format || 'plain',
+        // ASCII tool configuration  
+        toolWidth: data.tool_width || 80,
+        toolHeight: data.tool_height || 24,
+        toolPrompt: data.tool_prompt || `Analyze the conversation context provided and generate ASCII art that represents the main topic, concept, or theme being discussed. Create a visual representation using standard ASCII characters that fits within {width} characters wide and {height} lines tall.
+
+Guidelines:
+- Identify the key subject matter from the conversation context
+- Use standard ASCII characters for maximum compatibility
+- Create clear, recognizable shapes and forms that relate to the topic
+- Keep the art within the specified dimensions: {width}x{height}
+- Focus on the most distinctive visual elements of the subject
+- Make the art visually appealing and thematically relevant
+
+Context to analyze: {description}
+
+Generate ASCII art that visually represents the main theme or concept from this conversation:`
+      })
+      set(asciiConfigChangedAtom, false)
+    } catch (error) {
+      console.error('Failed to load ASCII conversation config:', error)
     }
   }
 )
@@ -205,6 +253,51 @@ export const deleteAsciiConversationAtom = atom(
       throw error
     } finally {
       set(loadingStatesAtom, prev => ({ ...prev, deleting: false }))
+    }
+  }
+)
+
+// Save ASCII conversation configuration
+export const saveAsciiConfigurationAtom = atom(
+  null,
+  async (get, set) => {
+    const activeId = get(activeAsciiConversationIdAtom)
+    if (!activeId) throw new Error('No active ASCII conversation')
+    
+    const config = get(asciiConfigAtom)
+    set(loadingStatesAtom, prev => ({ ...prev, saving: true }))
+    
+    try {
+      const response = await fetch('/api/ascii-conversations/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: activeId,
+          // Chat configuration
+          model_name: config.modelName,
+          system_directive: config.systemDirective || null,
+          temperature: Math.min(2, Math.max(0, config.temperature)),
+          // ASCII-specific configuration
+          style: config.style,
+          width: config.width,
+          include_instructions: config.includeInstructions,
+          output_format: config.outputFormat,
+          // ASCII tool configuration
+          tool_width: config.toolWidth,
+          tool_height: config.toolHeight,
+          tool_prompt: config.toolPrompt || null
+        })
+      })
+      
+      if (!response.ok) throw new Error('Failed to save ASCII configuration')
+      
+      set(asciiConfigChangedAtom, false)
+      // Reload config to ensure sync
+      set(loadAsciiConversationConfigAtom, activeId)
+    } catch (error) {
+      throw error
+    } finally {
+      set(loadingStatesAtom, prev => ({ ...prev, saving: false }))
     }
   }
 )

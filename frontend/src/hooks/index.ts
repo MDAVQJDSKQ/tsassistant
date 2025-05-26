@@ -3,6 +3,7 @@ export { useChatWithJotai } from './useChatWithJotai'
 export { useConversationManagement } from './useConversationManagement'
 export { useAsciiConversationManagement } from './useAsciiConversationManagement'
 export { useChatConfiguration } from './useChatConfiguration'
+export { useAsciiConfiguration } from './useAsciiConfiguration'
 export { useUIState } from './useUIState'
 export { useAsciiChat } from './useAsciiChat'
 

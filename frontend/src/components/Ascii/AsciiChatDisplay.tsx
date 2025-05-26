@@ -33,24 +33,37 @@ export function AsciiChatDisplay({ messages, isLoading }: AsciiChatDisplayProps)
             </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
-            >
+          messages.map((message) => {
+            // Log assistant messages to inspect their content
+            if (message.role === 'assistant') {
+              console.log('Assistant message content received:', message.content);
+            }
+            return (
               <div
-                className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                key={message.id}
+                className={`flex ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}
               >
-                <div className="message-content-display whitespace-pre-wrap">{message.content}</div>
+                <div
+                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                    message.role === 'user'
+                      ? typeof message.data === 'object' && 
+                        message.data !== null && 
+                        'tool_choice' in message.data && 
+                        message.data.tool_choice === 'ascii_art_generator_tool'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <div className={`message-content-display whitespace-pre-wrap ${
+                    message.role === 'assistant' ? 'font-mono' : ''
+                  }`}>{message.content}</div>
+                </div>
               </div>
-            </div>
-          ))
+            )
+          })
         )}
         
         {isLoading && (

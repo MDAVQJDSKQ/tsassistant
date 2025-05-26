@@ -8,6 +8,7 @@ import {
   activeAsciiConversationIdAtom,
   loadAsciiConversationsAtom,
   loadAsciiMessagesAtom,
+  loadAsciiConversationConfigAtom,
   createAsciiConversationAtom,
   deleteAsciiConversationAtom
 } from '@/atoms'
@@ -21,6 +22,7 @@ export function useAsciiConversationManagement() {
   
   const loadConversations = useSetAtom(loadAsciiConversationsAtom)
   const loadMessages = useSetAtom(loadAsciiMessagesAtom)
+  const loadConfig = useSetAtom(loadAsciiConversationConfigAtom)
   const createConversation = useSetAtom(createAsciiConversationAtom)
   const deleteConversation = useSetAtom(deleteAsciiConversationAtom)
 
@@ -46,11 +48,12 @@ export function useAsciiConversationManagement() {
       
       if (urlConversationId && urlConversationId !== activeConversationId) {
         setActiveConversationId(urlConversationId)
-        // Always load messages when switching conversations
+        // Always load messages and config when switching conversations
         loadMessages(urlConversationId)
+        loadConfig(urlConversationId)
       }
     }
-  }, [searchParams, activeConversationId, setActiveConversationId, loadMessages])
+  }, [searchParams, activeConversationId, setActiveConversationId, loadMessages, loadConfig])
 
   // Update URL when active ASCII conversation changes
   useEffect(() => {
@@ -66,8 +69,9 @@ export function useAsciiConversationManagement() {
     if (id !== activeConversationId) {
       setActiveConversationId(id)
       loadMessages(id)
+      loadConfig(id)
     }
-  }, [activeConversationId, setActiveConversationId, loadMessages])
+  }, [activeConversationId, setActiveConversationId, loadMessages, loadConfig])
 
   const handleCreateConversation = useCallback(async () => {
     try {
