@@ -1,0 +1,10 @@
+[
+  {
+    "type": "human",
+    "content": "What is your favorite Colour?"
+  },
+  {
+    "type": "ai",
+    "content": "As an AI, I don't actually have personal preferences like favorite colors. I aim to be helpful and provide useful information. Is there something specific you'd like to know about colors?"
+  }
+]

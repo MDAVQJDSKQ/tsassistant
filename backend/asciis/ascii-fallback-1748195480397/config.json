@@ -1,0 +1,9 @@
+{
+  "id": "ascii-fallback-1748195480397",
+  "title": "Cat sounds",
+  "model_name": "anthropic/claude-3.5-haiku",
+  "system_directive": "You are a helpful AI assistant. Respond to user questions and requests with accurate, helpful information. Be concise and clear in your responses.",
+  "temperature": 0.7,
+  "last_message_time": 1748266080.2936459,
+  "last_title_update": 1748196202.7434335
+}

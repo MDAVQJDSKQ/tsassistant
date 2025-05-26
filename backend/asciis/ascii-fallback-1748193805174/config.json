@@ -1,0 +1,9 @@
+{
+  "id": "ascii-fallback-1748193805174",
+  "title": "Colors discussed",
+  "model_name": "anthropic/claude-3.5-haiku",
+  "system_directive": "You are a helpful AI assistant. Respond to user questions and requests with accurate, helpful information. Be concise and clear in your responses.",
+  "temperature": 0.7,
+  "last_message_time": 1748193816.700043,
+  "last_title_update": 1748196205.8893948
+}

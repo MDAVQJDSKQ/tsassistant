@@ -4,19 +4,24 @@ import { useEffect } from 'react'
 import { useSetAtom } from 'jotai'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { ConversationSidebar } from '@/components/Chat/ConversationSidebar'
-import { ChatDisplay } from '@/components/Chat/ChatDisplay'
-import { ChatInput } from '@/components/Chat/ChatInput'
-import { ConfigPanel } from '@/components/Chat/ConfigPanel'
+import { AsciiChatDisplay } from '@/components/Ascii/AsciiChatDisplay'
+import { AsciiChatInput } from '@/components/Ascii/AsciiChatInput'
+import { AsciiConfigPanel } from '@/components/Ascii/AsciiConfigPanel'
 import { ResizableLayout } from '@/components/Chat/ResizableLayout'
-import { useConversationManagement, useChatWithJotai } from '@/hooks'
+import { useAsciiConversationManagement, useAsciiChat } from '@/hooks'
 import { currentPageContextAtom } from '@/atoms'
 
-export default function ChatPage() {
+export default function AsciiGeneratorPage() {
   const setPageContext = useSetAtom(currentPageContextAtom)
   
-  // Set page context to chat when this page loads
+  // Set page context to ASCII when this page loads
   useEffect(() => {
-    setPageContext('chat')
+    setPageContext('ascii')
+    
+    // Clean up when leaving the page
+    return () => {
+      setPageContext('chat')
+    }
   }, [setPageContext])
 
   const {
@@ -24,11 +29,10 @@ export default function ChatPage() {
     activeConversationId,
     handleSelectConversation,
     handleCreateConversation,
-    handleDeleteConversation,
-    refreshConversations
-  } = useConversationManagement()
+    handleDeleteConversation
+  } = useAsciiConversationManagement()
 
-  const chat = useChatWithJotai()
+  const asciiChat = useAsciiChat()
 
   return (
     <SidebarProvider>
@@ -39,22 +43,21 @@ export default function ChatPage() {
           onSelectConversation={handleSelectConversation}
           onCreateNewConversation={handleCreateConversation}
           onDeleteConversation={handleDeleteConversation}
-          onRefreshConversations={refreshConversations}
         />
 
         <ResizableLayout>
-          <ChatDisplay 
-            messages={chat.messages} 
-            isLoading={chat.isLoading} 
+          <AsciiChatDisplay 
+            messages={asciiChat.messages} 
+            isLoading={asciiChat.isLoading} 
           />
-          <ChatInput
-            input={chat.input}
-            handleInputChange={chat.handleInputChange}
-            handleSubmit={chat.handleSubmit}
-            isLoading={chat.isLoading}
-            isConversationActive={chat.canSendMessage}
+          <AsciiChatInput
+            input={asciiChat.input}
+            handleInputChange={asciiChat.handleInputChange}
+            handleSubmit={asciiChat.handleSubmit}
+            isLoading={asciiChat.isLoading}
+            isConversationActive={asciiChat.canSendMessage}
           />
-          <ConfigPanel />
+          <AsciiConfigPanel />
         </ResizableLayout>
       </div>
     </SidebarProvider>

@@ -1,5 +1,10 @@
-import * as React from "react"
-import { useState, useEffect, ChangeEvent } from "react"
+'use client'
+
+import { useAtom, useSetAtom } from 'jotai'
+import { Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Sheet,
   SheetTrigger,
@@ -8,85 +13,72 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-} from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-
-interface Settings {
-  centralModel: string;
-  apiKey: string;
-  titleGenerationPrompt?: string;
-}
+} from '@/components/ui/sheet'
+import {
+  settingsMenuOpenAtom,
+  settingsLoadingAtom,
+  settingsSavingAtom,
+  apiKeyConfiguredAtom,
+  tempApiKeyAtom,
+  tempCentralModelAtom,
+  tempTitlePromptAtom,
+  hasUnsavedChangesAtom,
+  openSettingsMenuAtom,
+  closeSettingsMenuAtom,
+  saveAndCloseSettingsAtom,
+  updateTempApiKeyAtom,
+  updateTempCentralModelAtom,
+  updateTempTitlePromptAtom,
+  currentPageContextAtom
+} from '@/atoms'
 
 export function SettingsMenu() {
-  const [settings, setSettings] = useState<Settings>({
-    centralModel: "openrouter",
-    apiKey: "",
-    titleGenerationPrompt: undefined
-  })
-  const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false)
+  // UI State
+  const [isOpen] = useAtom(settingsMenuOpenAtom)
+  const [isLoading] = useAtom(settingsLoadingAtom)
+  const [isSaving] = useAtom(settingsSavingAtom)
+  const [apiKeyConfigured] = useAtom(apiKeyConfiguredAtom)
+  const [hasUnsavedChanges] = useAtom(hasUnsavedChangesAtom)
+  const [currentPageContext] = useAtom(currentPageContextAtom)
+  
+  // Temp Values
+  const [tempApiKey] = useAtom(tempApiKeyAtom)
+  const [tempCentralModel] = useAtom(tempCentralModelAtom)
+  const [tempTitlePrompt] = useAtom(tempTitlePromptAtom)
+  
+  // Actions
+  const openSettings = useSetAtom(openSettingsMenuAtom)
+  const closeSettings = useSetAtom(closeSettingsMenuAtom)
+  const saveAndClose = useSetAtom(saveAndCloseSettingsAtom)
+  const updateApiKey = useSetAtom(updateTempApiKeyAtom)
+  const updateCentralModel = useSetAtom(updateTempCentralModelAtom)
+  const updateTitlePrompt = useSetAtom(updateTempTitlePromptAtom)
 
-  // Load settings from backend when sheet opens
-  useEffect(() => {
-    if (isOpen) {
-      setIsLoading(true)
-      fetch('/api/settings')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error("Failed to fetch settings")
-          }
-          return response.json()
-        })
-        .then(data => {
-          if (data.central_model && data.central_model !== settings.centralModel) {
-            setSettings(prev => ({ ...prev, centralModel: data.central_model }))
-          }
-          const newApiKeyConfigured = !!data.api_key_configured
-          if (newApiKeyConfigured !== apiKeyConfigured) {
-            setApiKeyConfigured(newApiKeyConfigured)
-          }
-          if (data.title_generation_prompt && data.title_generation_prompt !== settings.titleGenerationPrompt) {
-            setSettings(prev => ({ ...prev, titleGenerationPrompt: data.title_generation_prompt }))
-          }
-        })
-        .catch(err => {
-          console.error("Error fetching settings:", err)
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      openSettings()
+    } else {
+      closeSettings()
     }
-  }, [isOpen, settings.centralModel, settings.titleGenerationPrompt])
-
-  const handleSaveSettings = () => {
-    // Send to backend
-    fetch('/api/settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        centralModel: settings.centralModel,
-        apiKey: settings.apiKey,
-        titleGenerationPrompt: settings.titleGenerationPrompt
-      })
-    }).then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to save settings')
-      }
-      setIsOpen(false)
-    }).catch(err => {
-      console.error("Error saving settings:", err)
-      alert(`Error saving settings: ${err.message}`)
-    })
   }
 
+  const handleSave = async () => {
+    try {
+      await saveAndClose()
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      alert('Failed to save settings. Please try again.')
+    }
+  }
+
+  const isWorking = isLoading || isSaving
+  const conversationType = currentPageContext === 'ascii' ? 'ASCII' : 'regular'
+  const savingMessage = currentPageContext === 'ascii' 
+    ? 'Saving settings and regenerating ASCII conversation titles...'
+    : 'Saving settings and regenerating conversation titles...'
+
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon">
           <Settings className="h-6 w-6" />
@@ -98,27 +90,43 @@ export function SettingsMenu() {
           <SheetTitle>App Settings</SheetTitle>
           <SheetDescription>
             Configure application-wide settings here.
+            {hasUnsavedChanges && (
+              <span className="block text-amber-600 text-sm mt-1">
+                You have unsaved changes.
+              </span>
+            )}
+            {isSaving && (
+              <span className="block text-blue-600 text-sm mt-1">
+                {savingMessage}
+              </span>
+            )}
           </SheetDescription>
         </SheetHeader>
         
         {isLoading ? (
-          <div className="py-4 flex items-center justify-center">Loading settings...</div>
+          <div className="py-4 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <span className="ml-2">Loading settings...</span>
+          </div>
         ) : (
-          <div className="py-4 space-y-6">
+          <div className="py-4 px-4 space-y-6">
             <div className="space-y-2">
               <label htmlFor="central-model" className="text-sm font-medium block">
                 Central Model
               </label>
               <select
                 id="central-model"
-                value={settings.centralModel}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => 
-                  setSettings(prev => ({ ...prev, centralModel: e.target.value }))}
-                className="w-full p-2 border rounded bg-background"
+                value={tempCentralModel}
+                onChange={(e) => updateCentralModel(e.target.value)}
+                disabled={isWorking}
+                className="w-full p-2 border rounded bg-background disabled:opacity-50"
               >
                 <option value="claude-3.5-haiku">Claude 3.5 Haiku</option>
                 <option value="claude-3.7-sonnet">Claude 3.7 Sonnet</option>
               </select>
+              <p className="text-xs text-muted-foreground">
+                This model will be used for new conversations and ASCII generation.
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -129,12 +137,12 @@ export function SettingsMenu() {
                 id="api-key"
                 type="password"
                 placeholder={apiKeyConfigured ? "API key is configured" : "Enter your OpenRouter API key"}
-                value={settings.apiKey}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => 
-                  setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                value={tempApiKey}
+                onChange={(e) => updateApiKey(e.target.value)}
+                disabled={isWorking}
               />
               <p className="text-xs text-muted-foreground">
-                Your API key is stored securely in your browser and sent only to the backend.
+                Your API key is stored securely and sent only to the backend.
               </p>
             </div>
             
@@ -145,22 +153,51 @@ export function SettingsMenu() {
               <Textarea
                 id="title-generation-prompt"
                 placeholder="Enter custom prompt for generating chat titles (leave empty for default)"
-                value={settings.titleGenerationPrompt || ''}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => 
-                  setSettings(prev => ({ ...prev, titleGenerationPrompt: e.target.value }))}
+                value={tempTitlePrompt}
+                onChange={(e) => updateTitlePrompt(e.target.value)}
+                disabled={isWorking}
                 className="min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">
-                Customize how chat titles are generated. The conversation context will be appended to this prompt.
+                Customize how {conversationType} conversation titles are generated. The conversation context will be appended to this prompt.
+              </p>
+            </div>
+
+            {/* Context indicator */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-800">
+                <strong>Current Context:</strong> You're on the {conversationType} chat page. 
+                Title regeneration will apply to {conversationType} conversations only.
               </p>
             </div>
           </div>
         )}
         
         <SheetFooter>
-          <Button className="w-full" onClick={handleSaveSettings} disabled={isLoading}>
-            Save Settings
-          </Button>
+          <div className="flex gap-2 w-full">
+            <Button 
+              variant="outline" 
+              onClick={() => closeSettings()}
+              disabled={isWorking}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={isWorking || !hasUnsavedChanges}
+              className="flex-1"
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Regenerating {conversationType} Titles...
+                </>
+              ) : (
+                `Save & Update ${conversationType} Titles`
+              )}
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>

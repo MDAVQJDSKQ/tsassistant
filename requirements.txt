@@ -3,6 +3,7 @@ langchain-openai
 python-dotenv
 requests
 pydantic-settings
+httpx
 
 fastapi
 uvicorn[standard] # Includes standard dependencies like websockets and httptools

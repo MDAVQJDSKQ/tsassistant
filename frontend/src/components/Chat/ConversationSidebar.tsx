@@ -29,6 +29,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onCreateNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
+  onRefreshConversations?: () => void;
   currentVersion?: string;
 }
 
@@ -38,6 +39,7 @@ export function ConversationSidebar({
   onSelectConversation,
   onCreateNewConversation,
   onDeleteConversation,
+  onRefreshConversations,
   currentVersion = "v1.0"
 }: ConversationSidebarProps) {
   const router = useRouter();
@@ -62,7 +64,7 @@ export function ConversationSidebar({
         {/* Center: Conversations title */}
         <h2 className="text-lg font-semibold">Conversations</h2> 
 
-        {/* Right: New Conversation button */}
+        {/* Right: New Chat Button */}
         <Button variant="ghost" size="icon" onClick={onCreateNewConversation} title="New Conversation">
           <PlusCircle className="h-6 w-6" />
         </Button>
