@@ -17,8 +17,16 @@ export default function LandingPage() {
           <Button asChild size="lg">
             <Link href="/simple-chatbot">Simple Chatbot</Link>
           </Button>
+          <Button asChild size="lg" variant="secondary">
+            <Link href="/ascii-generator">ASCII Generator</Link>
+          </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/multi-agent-chatbot">Multi-Agent Chatbot (Coming Soon)</Link>
+          </Button>
+        </div>
+        <div className="pt-4">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/pricing">View Model Pricing</Link>
           </Button>
         </div>
       </div>

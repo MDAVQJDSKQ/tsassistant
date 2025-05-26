@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
+import { ModelSelection } from '@/components/ui/model-selection'
 import { useChatConfiguration } from '@/hooks'
 
 export function ConfigPanel() {
@@ -31,27 +32,11 @@ export function ConfigPanel() {
       </header>
       <div className="flex-1 p-4 overflow-auto">
         <div className="space-y-6">
-          <div>
-            <label htmlFor="model-selection" className="text-sm font-medium mb-2 block">
-              Model Selection
-            </label>
-            <select
-              id="model-selection"
-              className="w-full p-2 border rounded bg-background"
-              value={config.modelName}
-              onChange={(e) => updateModelName(e.target.value)}
-              disabled={!canSendMessage}
-            >
-              <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
-              <option value="anthropic/claude-3.7-sonnet">Claude 3.7 Sonnet</option>
-              <option value="openai/gpt-4.1-nano">GPT-4.1 Nano</option>
-              <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
-              <option value="openai/gpt-4.1">GPT-4.1</option>
-              <option value="x-ai/grok-3-mini-beta">Grok 3 Mini Beta</option>
-              <option value="google/gemma-3-12b-it:free">Gemma 3 12B</option>
-              <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
-            </select>
-          </div>
+          <ModelSelection
+            value={config.modelName}
+            onChange={updateModelName}
+            disabled={!canSendMessage}
+          />
 
           <div>
             <label htmlFor="system-directive" className="text-sm font-medium mb-2 block">

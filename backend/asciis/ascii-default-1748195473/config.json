@@ -1,0 +1,10 @@
+{
+  "id": "ascii-default-1748195473",
+  "title": "Brief greeting only",
+  "model_name": "anthropic/claude-3.5-haiku",
+  "system_directive": "You are a helpful AI assistant. Respond to user questions and requests with accurate, helpful information. Be concise and clear in your responses.",
+  "temperature": 0.7,
+  "created_time": 1748195473.3011236,
+  "last_message_time": 1748266539.6788564,
+  "last_title_update": 1748196203.2225893
+}

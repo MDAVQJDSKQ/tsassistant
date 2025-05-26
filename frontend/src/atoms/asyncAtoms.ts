@@ -240,9 +240,16 @@ export const generateTitleAtom = atom(
       
       const data = await response.json()
       if (data?.title) {
+        // Update local conversation list
         set(conversationsAtom, prev => prev.map(conv => 
           conv.id === conversationId ? { ...conv, title: data.title } : conv
         ))
+        
+        // Also refresh the conversation list from backend to ensure consistency
+        setTimeout(() => {
+          set(loadConversationsAtom)
+        }, 500)
+        
         return data.title
       }
     } catch (error) {
@@ -266,6 +273,25 @@ export const updateMessagesAtom = atom(
       set(conversationsAtom, prev => prev.map(conv => 
         conv.id === activeId ? { ...conv, messages: newMessages } : conv
       ))
+      
+      // Auto-generate title after 2-4 messages if conversation still has default title
+      const currentConversation = get(conversationsAtom).find(c => c.id === activeId)
+      const shouldGenerateTitle = (
+        newMessages.length >= 2 && // At least 2 messages (user + assistant)
+        newMessages.length <= 6 && // Don't keep regenerating for long conversations
+        currentConversation &&
+        (currentConversation.title === 'New Conversation' || 
+         currentConversation.title.startsWith('Chat ') ||
+         !currentConversation.title ||
+         currentConversation.title.length < 10) // Very short/generic titles
+      )
+      
+      if (shouldGenerateTitle) {
+        // Trigger title generation asynchronously (don't await to avoid blocking)
+        setTimeout(() => {
+          set(generateTitleAtom, activeId)
+        }, 1000) // Small delay to ensure message is saved to backend first
+      }
     }
   }
 ) 

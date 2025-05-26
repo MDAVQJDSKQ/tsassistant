@@ -24,16 +24,49 @@ export function useConversationManagement() {
   const createConversation = useSetAtom(createConversationAtom)
   const deleteConversation = useSetAtom(deleteConversationAtom)
 
-  // Use refs to prevent infinite loops
-  const isLoadingRef = useRef(false)
+  // Use ref to prevent infinite loops in URL handling
   const lastUrlIdRef = useRef<string | null>(null)
 
-  // Load conversations on mount (only once)
+  // Load conversations on mount and provide manual refresh
   useEffect(() => {
-    if (!isLoadingRef.current) {
-      isLoadingRef.current = true
+    loadConversations()
+  }, [loadConversations])
+
+  // Periodic refresh to catch title updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadConversations()
+    }, 30000) // Refresh every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [loadConversations])
+
+  // Refresh when page becomes visible (user switches back to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadConversations()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [loadConversations])
+
+  // Listen for title updates from settings menu
+  useEffect(() => {
+    const handleTitlesUpdated = (event: CustomEvent) => {
+      console.log('Conversation titles updated, refreshing list...', event.detail)
       loadConversations()
     }
+
+    window.addEventListener('conversationTitlesUpdated', handleTitlesUpdated as EventListener)
+    return () => window.removeEventListener('conversationTitlesUpdated', handleTitlesUpdated as EventListener)
+  }, [loadConversations])
+
+  // Manual refresh function for external use
+  const refreshConversations = useCallback(() => {
+    loadConversations()
   }, [loadConversations])
 
   // Handle URL synchronization (only when URL actually changes)
@@ -83,26 +116,31 @@ export function useConversationManagement() {
   const handleCreateConversation = useCallback(async () => {
     try {
       await createConversation()
+      // Refresh conversation list after creating
+      setTimeout(() => refreshConversations(), 500)
     } catch (error) {
       console.error('Error creating conversation:', error)
       alert('Failed to create new conversation')
     }
-  }, [createConversation])
+  }, [createConversation, refreshConversations])
 
   const handleDeleteConversation = useCallback(async (id: string) => {
     try {
       await deleteConversation(id)
+      // Refresh conversation list after deleting
+      setTimeout(() => refreshConversations(), 500)
     } catch (error) {
       console.error('Error deleting conversation:', error)
       alert('Failed to delete conversation')
     }
-  }, [deleteConversation])
+  }, [deleteConversation, refreshConversations])
 
   return {
     conversations,
     activeConversationId,
     handleSelectConversation,
     handleCreateConversation,
-    handleDeleteConversation
+    handleDeleteConversation,
+    refreshConversations
   }
 } 

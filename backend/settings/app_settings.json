@@ -1,1 +1,1 @@
-{"central_model": "claude-3.7-sonnet", "api_key": "", "title_generation_prompt": "Summarize this conversation in less than 30 characters please. No references to \"talk\" or \"chat\", proper grammar, no punctuation, capitalize first word. Include a monkey reference."}
+{"central_model": "claude-3.7-sonnet", "api_key": "", "title_generation_prompt": "Summarize this conversation in less than 20 characters please. No references to \"talk\" or \"chat\", proper grammar, no punctuation, capitalize first word."}
