@@ -6,10 +6,26 @@ venv/
 __pycache__/
 *.pyc
 
-# Conversation files
-backend/conversations/history/*.json
+# --- Conversation Files ---
+# Ignore individual conversation session folders (e.g., backend/conversations/uuid-xxxx/)
+backend/conversations/*/
+# BUT, ensure the main '''conversations''' directory itself can be tracked (e.g., via .gitkeep)
+!backend/conversations/.gitkeep
+# AND, ensure the '''history''' subdirectory within '''conversations''' can be tracked
+!backend/conversations/history/
+# THEN, ignore all files *inside* '''conversations/history/'''
+backend/conversations/history/*
+# EXCEPT for a .gitkeep file, to ensure the empty '''history''' directory is tracked
 !backend/conversations/history/.gitkeep
 
-# Ignore conversation config directories but keep main structure
-backend/conversations/*/
-!backend/conversations/.gitkeep
+# --- ASCIIs Files ---
+# Ignore individual ASCII art session folders (e.g., backend/asciis/ascii-xxxx/)
+backend/asciis/*/
+# BUT, ensure the main '''asciis''' directory itself can be tracked (e.g., via .gitkeep)
+!backend/asciis/.gitkeep
+# AND, ensure the '''history''' subdirectory within '''asciis''' can be tracked
+!backend/asciis/history/
+# THEN, ignore all files *inside* '''asciis/history/'''
+backend/asciis/history/*
+# EXCEPT for a .gitkeep file, to ensure the empty '''history''' directory is tracked
+!backend/asciis/history/.gitkeep

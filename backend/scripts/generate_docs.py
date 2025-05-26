@@ -21,7 +21,7 @@ load_dotenv()
 # --- Configuration ---
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
-MODEL_NAME = "anthropic/claude-3.7-sonnet" # Model specified by the user
+MODEL_NAME = "anthropic/claude-sonnet-4" # Model specified by the user
 API_DELAY = 0.5  # Delay between API calls in seconds
 # --- End Configuration ---
 
