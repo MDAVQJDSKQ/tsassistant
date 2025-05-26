@@ -1,114 +1,134 @@
-# Multi-Agent Chat Interface
+# Multi-Agent Chatbot Platform
 
 ## Overview
-Multi-Agent Chat Interface is a versatile chatbot application that allows users to interact with various AI models through a modern web interface. The application features conversation management, customizable system prompts, model selection, and conversation history tracking. Users can create, save, retrieve, and customize multiple conversations with different AI personas and settings.
+
+A sophisticated multi-agent chatbot platform that supports both traditional chat conversations and ASCII art generation. Built with a Next.js frontend and FastAPI backend, the platform offers flexible model selection, conversation management, and specialized ASCII art generation capabilities through multiple AI providers via OpenRouter integration.
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (for frontend)
-- Python 3.8+ (for backend)
+
+- Python 3.8+
+- Node.js 18+
 - OpenRouter API key
 
 ### Backend Setup
-1. Clone the repository to your local machine
-2. Create a virtual environment and activate it:
+
+1. **Clone the repository and navigate to the backend directory**
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   git clone <repository-url>
+   cd backend
    ```
-3. Install the backend dependencies:
+
+2. **Install Python dependencies**
    ```bash
    pip install -r requirements.txt
    ```
-4. Set up environment variables by creating a `.env` file in the root directory:
-   ```
+
+3. **Configure environment variables**
+   Create a `.env` file in the backend directory:
+   ```env
    OPENROUTER_API_KEY=your_openrouter_api_key_here
    ```
-5. Start the backend server:
+
+4. **Start the backend server**
    ```bash
    python -m backend.backend_server
    ```
-   The backend will be available at http://localhost:8000
 
 ### Frontend Setup
-1. Navigate to the frontend directory:
+
+1. **Navigate to the frontend directory**
    ```bash
    cd frontend
    ```
-2. Install frontend dependencies:
+
+2. **Install Node.js dependencies**
    ```bash
    npm install
    ```
-3. Create a `.env.local` file in the frontend directory:
-   ```
+
+3. **Configure environment variables**
+   Create a `.env.local` file in the frontend directory:
+   ```env
    BACKEND_API_URL=http://localhost:8000
    ```
-4. Start the frontend development server:
+
+4. **Start the development server**
    ```bash
    npm run dev
    ```
-   The frontend will be available at http://localhost:3000
+
+### Access the Application
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
 
 ## Tech Stack
 
-### Backend
-- **Python** - Core programming language
-- **FastAPI** - Web framework for building APIs
-- **LangChain** - Framework for working with language models
+**Backend:**
+- **Python** - Core backend language
+- **FastAPI** - Web framework for API development
+- **LangChain** - AI/LLM integration framework
 - **Pydantic** - Data validation and settings management
-- **Uvicorn** - ASGI server implementation
+- **Uvicorn** - ASGI server
 
-### Frontend
-- **TypeScript** - Programming language
-- **Next.js** - React framework for web applications
-- **Tailwind CSS** - Utility-first CSS framework
-- **Radix UI** - Unstyled, accessible UI components
-- **AI SDK** - Tools for AI interactions (OpenAI integration)
+**Frontend:**
+- **TypeScript/React** - Core frontend technologies
+- **Next.js** - React framework with App Router
+- **Tailwind CSS** - Styling framework
+- **Jotai** - State management
+- **shadcn/ui** - UI component library
+- **Radix UI** - Headless UI primitives
+
+**AI Integration:**
+- **OpenRouter** - Multi-provider AI API gateway
+- **LangChain OpenAI** - OpenRouter integration layer
 
 ## Features
 
-### Conversation Management
-- Create new conversations with unique IDs
-- List and retrieve all saved conversations
-- Delete conversations
-- Automatically generate titles for conversations based on content
+### Core Chatbot Functionality
+- **Multi-Model Support**: Access to various AI models through OpenRouter (Anthropic Claude, OpenAI GPT, Google Gemma, etc.)
+- **Conversation Management**: Create, save, load, and delete conversations with persistent storage
+- **Configurable Settings**: Adjustable model selection, system directives, and temperature settings
+- **Real-time Chat**: Streaming responses with typing indicators
 
-### Model Configuration
-- Select from multiple AI models (OpenAI, Anthropic, Google)
-- Customize system prompts to define AI behavior
-- Adjust temperature settings for response variety
-- Save model configurations per conversation
+### ASCII Art Generation
+- **Dedicated ASCII Chat Mode**: Specialized interface for ASCII art generation
+- **Custom ASCII Tool**: Integrated LangChain tool for creating ASCII art with configurable dimensions
+- **Fallback Generation**: Automatic fallback ASCII generation when AI models fail
+- **ASCII Conversation Management**: Separate conversation tracking for ASCII-focused chats
 
-### Chat Interface
-- Real-time streaming responses
-- Persistent conversation history
-- Responsive design for mobile and desktop
-- Sidebar for quick access to saved conversations
+### User Interface
+- **Responsive Design**: Mobile-friendly interface with adaptive layouts
+- **Sidebar Navigation**: Conversation list with search and management features
+- **Resizable Panels**: Adjustable layout with drag-to-resize functionality
+- **Settings Panel**: Centralized configuration management
+- **Model Pricing Display**: Real-time pricing information for different AI models
 
-### Settings
-- Global application settings
-- Custom title generation prompts
-- API key management
+### Advanced Features
+- **Title Generation**: Automatic conversation title generation based on chat history
+- **Configuration Persistence**: Settings and conversations saved across sessions
+- **Error Handling**: Comprehensive error states and user feedback
+- **Debug Endpoints**: Development tools for troubleshooting
 
 ## Project Structure
 
-- `backend/` - Python backend server and API
-  - `backend_server.py` - Main FastAPI application
-  - `minimal_chatbot.py` - Simple chatbot implementation
-  - `config.py` - Configuration schemas
-  - `utils.py` - Helper functions
-  - `conversations/` - Stored conversation data
-  - `prompts/` - System prompt templates
-  - `scripts/` - Utility scripts for documentation
+### Backend (`/backend`)
+- **`backend_server.py`** - Main FastAPI application with all API endpoints
+- **`config.py`** - Configuration classes and settings management
+- **`utils.py`** - Utility functions for conversation handling and title generation
+- **`tools/`** - LangChain tools including ASCII art generator
+- **`conversations/`** - Stored conversation data and configurations
+- **`asciis/`** - ASCII conversation storage with separate organization
+- **`settings/`** - Application-wide settings and preferences
+- **`scripts/`** - Documentation generation and maintenance scripts
 
-- `frontend/` - Next.js frontend application
-  - `src/app/` - Next.js pages and API routes
-  - `src/components/` - React components
-    - `Chat/` - Chat-related components
-    - `Settings/` - Settings-related components
-    - `ui/` - Reusable UI components
-  - `src/hooks/` - Custom React hooks
-  - `src/lib/` - Utility functions
-
-The application uses a modern API-based architecture with the backend handling the AI model interactions and conversation storage, while the frontend provides a responsive and intuitive user interface.
+### Frontend (`/frontend/src`)
+- **`app/`** - Next.js App Router pages and API routes
+- **`components/`** - Reusable React components organized by feature
+- **`atoms/`** - Jotai state management with async operations
+- **`hooks/`** - Custom React hooks for complex state logic
+- **`providers/`** - Context providers and state initialization
+- **`lib/`** - Utility functions and helpers
